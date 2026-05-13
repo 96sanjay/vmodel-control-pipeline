@@ -49,6 +49,10 @@ commonroad = [
   "commonroad-io",
   "matplotlib>=3.8",
 ]
+logging = [
+  "asammdf>=7.4",
+  "cantools>=39.0",
+]
 
 [project.urls]
 Repository = "https://example.com/vmodel-control-pipeline"

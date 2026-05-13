@@ -1,0 +1,86 @@
+signals:
+  - name: time_s
+    unit: s
+    description: Experiment time stamp.
+    sample_rate_hz: 10.0
+    required: true
+  - name: px
+    unit: m
+    description: Measured ego x position.
+    sample_rate_hz: 10.0
+    required: true
+  - name: py
+    unit: m
+    description: Measured ego y position.
+    sample_rate_hz: 10.0
+    required: true
+  - name: yaw
+    unit: rad
+    description: Measured ego heading angle.
+    sample_rate_hz: 10.0
+    required: true
+  - name: v
+    unit: m/s
+    description: Measured ego speed.
+    sample_rate_hz: 10.0
+    required: true
+  - name: px_est
+    unit: m
+    description: Estimated ego x position.
+    sample_rate_hz: 10.0
+    required: true
+  - name: py_est
+    unit: m
+    description: Estimated ego y position.
+    sample_rate_hz: 10.0
+    required: true
+  - name: yaw_est
+    unit: rad
+    description: Estimated ego heading angle.
+    sample_rate_hz: 10.0
+    required: true
+  - name: v_est
+    unit: m/s
+    description: Estimated ego speed.
+    sample_rate_hz: 10.0
+    required: true
+  - name: acceleration_cmd
+    unit: m/s^2
+    description: Requested longitudinal acceleration.
+    sample_rate_hz: 10.0
+    required: true
+  - name: steering_cmd
+    unit: rad
+    description: Requested steering angle.
+    sample_rate_hz: 10.0
+    required: true
+  - name: controller_mode
+    unit: enum
+    description: Controller or safety-supervisor mode.
+    sample_rate_hz: 10.0
+    required: true
+  - name: solver_status
+    unit: enum
+    description: Optimization solver status.
+    sample_rate_hz: 10.0
+    required: true
+  - name: solve_time_ms
+    unit: ms
+    description: Controller compute time.
+    sample_rate_hz: 10.0
+    required: true
+  - name: fallback_reason
+    unit: enum
+    description: Reason code for fallback activation.
+    sample_rate_hz: 10.0
+    required: true
+  - name: lateral_error
+    unit: m
+    description: Lateral tracking error.
+    sample_rate_hz: 10.0
+    required: true
+  - name: heading_error
+    unit: rad
+    description: Heading tracking error.
+    sample_rate_hz: 10.0
+    required: true

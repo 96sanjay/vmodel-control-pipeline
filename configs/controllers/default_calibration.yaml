@@ -1,0 +1,26 @@
+metadata:
+  name: default_controller_calibration
+  version: 0.1.0
+  intent: Baseline parameters for repeatable smoke validation, not production calibration.
+
+controller:
+  horizon: 20
+  dt: 0.1
+  q_position: 10.0
+  q_heading: 5.0
+  q_velocity: 2.0
+  r_accel: 0.5
+  r_steer: 0.5
+  rd_accel: 0.1
+  rd_steer: 0.1
+
+safety:
+  max_solve_time_ms: 80.0
+  residual_threshold: 3.0
+  max_missing_sensor_age_s: 0.2
+  fallback_deceleration: -3.0
+
+logging:
+  signal_dictionary: configs/hardware/signal_dictionary.yaml
+  default_output_dir: artifacts/signal_logs
+  export_mf4_when_available: false

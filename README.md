@@ -202,6 +202,23 @@ configs/hardware/hil_lite.yaml
 
 Fault injection currently covers dropped requests, delayed requests, and invalid measurements.
 
+## Industrial-Style Logging and Calibration
+
+Phase 13 adds a signal dictionary, CSV signal logs with JSON metadata sidecars, YAML calibration
+loading, and a replay script that summarizes logs and creates lightweight SVG plots.
+
+```text
+configs/hardware/signal_dictionary.yaml
+configs/controllers/default_calibration.yaml
+```
+
+MF4 export is supported when the optional `asammdf` dependency is installed; CSV remains the
+portable default for CI and local development.
+
+```bash
+python scripts/replay_signal_log.py artifacts/example/controller_signals.csv
+```
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
