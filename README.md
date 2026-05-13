@@ -99,6 +99,17 @@ The model layer includes vehicle parameters, Euler integration, command clipping
 constraint checks, and steering-rate checks. Controllers in later phases should depend on this
 layer instead of talking directly to CommonRoad.
 
+## PID Baseline
+
+Phase 4 adds the first closed-loop controller baseline:
+
+```bash
+python scripts/simulate_pid_straight_path.py
+```
+
+The script writes a CSV plus SVG plots for speed error and lateral error under
+`artifacts/pid_straight_path/`. These generated artifacts are intentionally ignored by Git.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

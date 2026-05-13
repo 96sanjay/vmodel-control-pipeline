@@ -16,6 +16,7 @@ venv/
 env/
 
 # Data and logs
+artifacts/
 data/raw/*
 data/processed/*
 !data/raw/.gitkeep
