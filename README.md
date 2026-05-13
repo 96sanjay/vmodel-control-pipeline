@@ -15,8 +15,11 @@ Requirements -> modeling -> PID/LQR/Kalman baselines -> MPC/NMPC
 
 ## Current Scope
 
-Phase 0 creates the production-style repository skeleton only. Control algorithms, CommonRoad
-ingestion, MIL/SIL/HIL-lite runners, and industrial logging will be added in later phases.
+Phase 0 created the production-style repository skeleton. Phase 1 adds the V-model-inspired
+requirements, hazard log, traceability matrix, system architecture, and validation plan.
+
+Control algorithms, CommonRoad ingestion, MIL/SIL/HIL-lite runners, and industrial logging will be
+added in later phases.
 
 ## Repository Layout
 
@@ -68,3 +71,12 @@ coverage report
   tools and processes are used.
 - Build the CommonRoad control case first before adding the CityLearn/OpenDSS transfer case.
 - Prefer reproducible scripts, tests, and reports over notebook-only results.
+
+## Phase 1 Documentation
+
+- [System requirements](docs/requirements/system_requirements.yaml)
+- [Software requirements](docs/requirements/software_requirements.yaml)
+- [Hazard log](docs/hazards/hazard_log.yaml)
+- [Traceability matrix](docs/requirements/traceability_matrix.csv)
+- [System architecture](docs/architecture/system_architecture.md)
+- [Validation plan](docs/reports/validation_plan.md)

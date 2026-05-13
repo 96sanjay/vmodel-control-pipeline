@@ -1,0 +1,171 @@
+metadata:
+  document_id: SYS-REQ-CR
+  title: System requirements for CommonRoad control validation case
+  project: V-Model Validation Pipeline for Optimization-Based Control Algorithms
+  version: 0.1.0
+  status: draft
+  scope: >
+    V-model-inspired requirements for the primary CommonRoad NMPC motion-control case study.
+    These requirements are intended for engineering traceability and portfolio evidence only.
+  safety_note: >
+    This project uses ISO 26262-inspired terminology and structure. It does not claim ISO 26262,
+    Automotive SPICE, ASAM, or FMI compliance.
+
+requirements:
+  - id: REQ-CR-001
+    title: Collision avoidance
+    type: safety
+    priority: high
+    statement: >
+      The ego vehicle control system shall generate commands intended to avoid collision with
+      static and dynamic obstacles in the selected CommonRoad scenarios.
+    rationale: Collision avoidance is the central safety requirement for road-motion control.
+    verification: TC-CR-MIL-001
+    acceptance_criteria:
+      - collision_count == 0 for smoke scenarios
+      - collision status is reported in benchmark results
+
+  - id: REQ-CR-002
+    title: Road boundary compliance
+    type: safety
+    priority: high
+    statement: >
+      The ego vehicle shall remain within the drivable road boundary for benchmark scenarios where
+      a feasible reference path exists.
+    rationale: Road-boundary compliance prevents invalid trajectories and supports scenario KPIs.
+    verification: TC-CR-MIL-002
+    acceptance_criteria:
+      - road_boundary_violation_count == 0 for smoke scenarios
+      - lanelet or drivable-area violations are reported when available
+
+  - id: REQ-CR-003
+    title: Actuator and velocity limits
+    type: functional
+    priority: high
+    statement: >
+      The controller shall respect configured steering angle, acceleration, and velocity limits
+      before commands are applied to the plant model.
+    rationale: Saturation and feasibility checks are required before comparing controllers.
+    verification: TC-CR-MIL-003
+    acceptance_criteria:
+      - acceleration commands remain within configured bounds
+      - steering commands remain within configured bounds
+      - velocity remains within configured bounds except for documented infeasible cases
+
+  - id: REQ-CR-004
+    title: Solver infeasibility fallback
+    type: safety
+    priority: high
+    statement: >
+      The system shall switch to a deterministic fallback controller when the optimization solver
+      reports infeasible, fails to return a valid solution, or returns an invalid command.
+    rationale: Optimization-based controllers need explicit failure handling.
+    verification: TC-CR-MIL-004
+    acceptance_criteria:
+      - fallback mode activates for injected solver failure
+      - fallback reason is logged with timestamp and mode
+
+  - id: REQ-CR-005
+    title: Real-time feasibility
+    type: performance
+    priority: high
+    statement: >
+      The controller shall return a valid command within the configured sample time or request a
+      fallback mode.
+    rationale: Timing evidence is required before moving from MIL to SIL and HIL-lite.
+    verification: TC-CR-SIL-001
+    acceptance_criteria:
+      - p95 solve time is below configured sample-time margin for smoke cases
+      - deadline misses are counted and reported
+
+  - id: REQ-CR-006
+    title: State estimation accuracy
+    type: functional
+    priority: medium
+    statement: >
+      The estimator shall reduce vehicle-state RMSE relative to raw noisy measurements in
+      configured sensor-noise tests.
+    rationale: Closed-loop controller validation should distinguish measured and estimated state.
+    verification: TC-CR-MIL-005
+    acceptance_criteria:
+      - estimated-state RMSE is lower than raw-measurement RMSE for the nominal noise case
+      - innovation or residual metrics are recorded
+
+  - id: REQ-CR-007
+    title: Estimator fault detection
+    type: safety
+    priority: medium
+    statement: >
+      The validation system shall detect excessive estimator residuals and request a degraded or
+      fallback mode when configured thresholds are exceeded.
+    rationale: Estimator divergence is a plausible source of unsafe or unstable control action.
+    verification: TC-CR-MIL-006
+    acceptance_criteria:
+      - biased-measurement tests increase residual metrics
+      - residual threshold crossing is logged with a reason code
+
+  - id: REQ-CR-008
+    title: Industrial-style measurement logging
+    type: evidence
+    priority: medium
+    statement: >
+      The validation system shall record controller, estimator, plant, safety-mode, and KPI signals
+      with units and metadata in a machine-readable log format.
+    rationale: Traceable signal logging supports repeatability and later MDF/MF4 export.
+    verification: TC-CR-MIL-007
+    acceptance_criteria:
+      - required signal names, units, and descriptions exist in the signal dictionary
+      - each benchmark run emits a results JSON or CSV artifact
+
+  - id: REQ-CR-009
+    title: MIL to SIL equivalence
+    type: verification
+    priority: medium
+    statement: >
+      The SIL adapter shall be tested back-to-back against the MIL controller interface using the
+      same input sequence and configured numerical tolerances.
+    rationale: Back-to-back testing provides evidence that packaged controller behavior matches MIL.
+    verification: TC-CR-SIL-002
+    acceptance_criteria:
+      - acceleration and steering differences remain within tolerance for smoke cases
+      - failed equivalence creates a clear report
+
+  - id: REQ-CR-010
+    title: HIL-lite timing and communication evidence
+    type: verification
+    priority: medium
+    statement: >
+      The HIL-lite loop shall record loop timing, command latency, missed deadlines, communication
+      loss, and fallback activations.
+    rationale: HIL-lite evidence should be honest about timing and interface behavior.
+    verification: TC-CR-HIL-001
+    acceptance_criteria:
+      - loop timing statistics are recorded
+      - communication timeout tests trigger fallback behavior
+
+  - id: REQ-CR-011
+    title: Requirement traceability
+    type: process
+    priority: high
+    statement: >
+      Each requirement shall link to at least one verification test case and at least one expected
+      evidence artifact.
+    rationale: Traceability is the core reason this project is a validation pipeline rather than a
+      one-off controller demo.
+    verification: TC-DOC-001
+    acceptance_criteria:
+      - traceability matrix contains every requirement ID
+      - each row has a non-empty verification test ID and evidence artifact
+
+  - id: REQ-CR-012
+    title: Reproducible smoke execution
+    type: process
+    priority: high
+    statement: >
+      A developer shall be able to run the smoke test suite from a fresh checkout using documented
+      environment and Docker instructions.
+    rationale: Reproducibility is necessary for credible benchmark results and portfolio review.
+    verification: TC-CI-001
+    acceptance_criteria:
+      - pytest passes in the local conda environment
+      - docker build completes for the project image

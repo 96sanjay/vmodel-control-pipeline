@@ -1,0 +1,125 @@
+metadata:
+  document_id: HAZ-LOG-CR
+  title: ISO 26262-inspired hazard log for CommonRoad validation case
+  version: 0.1.0
+  status: draft
+  scope: >
+    Preliminary hazard analysis for a simulated road-motion control case study. Severity,
+    exposure, and controllability labels are qualitative project labels, not certified ratings.
+  disclaimer: >
+    This hazard log supports engineering discipline and traceability. It does not establish safety
+    compliance, product safety, or roadworthiness.
+
+hazards:
+  - id: HAZ-001
+    hazard: Collision due to failed trajectory planning
+    potential_causes:
+      - infeasible NMPC problem
+      - invalid obstacle interpretation
+      - stale reference trajectory
+    qualitative_classification:
+      severity: high
+      exposure: scenario-dependent
+      controllability: limited in simulation
+    safety_mechanism: Emergency braking fallback and solver-status monitoring
+    linked_requirements:
+      - REQ-CR-001
+      - REQ-CR-004
+      - REQ-CR-008
+    verification:
+      - TC-CR-MIL-001
+      - TC-CR-MIL-004
+
+  - id: HAZ-002
+    hazard: Road departure due to boundary or lanelet constraint failure
+    potential_causes:
+      - incorrect lanelet association
+      - overly aggressive steering command
+      - reference path outside drivable area
+    qualitative_classification:
+      severity: high
+      exposure: scenario-dependent
+      controllability: medium in simulation
+    safety_mechanism: Road-boundary KPI checks, command saturation, and fallback mode
+    linked_requirements:
+      - REQ-CR-002
+      - REQ-CR-003
+      - REQ-CR-004
+    verification:
+      - TC-CR-MIL-002
+      - TC-CR-MIL-003
+
+  - id: HAZ-003
+    hazard: Loss of control due to invalid actuator command
+    potential_causes:
+      - missing command saturation
+      - controller bug
+      - numerical instability
+    qualitative_classification:
+      severity: medium
+      exposure: scenario-dependent
+      controllability: medium in simulation
+    safety_mechanism: Constraint checks before plant application and deterministic fallback braking
+    linked_requirements:
+      - REQ-CR-003
+      - REQ-CR-004
+    verification:
+      - TC-CR-MIL-003
+      - TC-CR-MIL-004
+
+  - id: HAZ-004
+    hazard: Missed control deadline causes stale command execution
+    potential_causes:
+      - solver runtime exceeds sample time
+      - excessive logging overhead
+      - overloaded HIL-lite process
+    qualitative_classification:
+      severity: medium
+      exposure: scenario-dependent
+      controllability: medium in simulation
+    safety_mechanism: Solve-time monitoring, deadline counters, and timeout fallback
+    linked_requirements:
+      - REQ-CR-005
+      - REQ-CR-010
+    verification:
+      - TC-CR-SIL-001
+      - TC-CR-HIL-001
+
+  - id: HAZ-005
+    hazard: Loss of control due to estimator divergence
+    potential_causes:
+      - biased yaw measurement
+      - excessive sensor noise
+      - poor filter tuning
+    qualitative_classification:
+      severity: medium
+      exposure: scenario-dependent
+      controllability: medium in simulation
+    safety_mechanism: Estimator residual monitoring and degraded/fallback mode request
+    linked_requirements:
+      - REQ-CR-006
+      - REQ-CR-007
+      - REQ-CR-004
+    verification:
+      - TC-CR-MIL-005
+      - TC-CR-MIL-006
+
+  - id: HAZ-006
+    hazard: Missing evidence prevents validation result reproduction
+    potential_causes:
+      - missing configuration capture
+      - incomplete logs
+      - untracked scenario or data version
+    qualitative_classification:
+      severity: process
+      exposure: likely during development
+      controllability: high
+    safety_mechanism: Traceability matrix, run metadata, signal dictionary, and reproducible smoke tests
+    linked_requirements:
+      - REQ-CR-008
+      - REQ-CR-011
+      - REQ-CR-012
+    verification:
+      - TC-CR-MIL-007
+      - TC-DOC-001
+      - TC-CI-001

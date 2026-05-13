@@ -1,0 +1,131 @@
+metadata:
+  document_id: SW-REQ-CR
+  title: Software requirements for V-model control pipeline
+  version: 0.1.0
+  status: draft
+  scope: >
+    Software requirements for reusable modules that will support CommonRoad MIL, SIL, HIL-lite,
+    logging, and traceability workflows.
+  compliance_note: >
+    Requirements are V-model-inspired and ISO 26262-inspired. This document is not a compliance
+    claim or a replacement for certified process evidence.
+
+requirements:
+  - id: SW-REQ-001
+    title: CommonRoad scenario ingestion
+    linked_system_requirements:
+      - REQ-CR-001
+      - REQ-CR-002
+    statement: >
+      The benchmark adapter shall load CommonRoad scenario metadata, initial state, planning problem,
+      lanelet network, and obstacle lists without hardcoded absolute paths.
+    verification: TC-CR-LOAD-001
+    design_element: src/vcp/benchmarks/commonroad_loader.py
+
+  - id: SW-REQ-002
+    title: Domain-independent vehicle model
+    linked_system_requirements:
+      - REQ-CR-003
+    statement: >
+      The vehicle model layer shall define state, input, parameters, integration, and constraint
+      checks independently from the CommonRoad adapter.
+    verification: TC-MODEL-001
+    design_element: src/vcp/models/
+
+  - id: SW-REQ-003
+    title: Baseline controller interfaces
+    linked_system_requirements:
+      - REQ-CR-003
+      - REQ-CR-012
+    statement: >
+      PID, LQR, and MPC baseline controllers shall expose a common step interface and return
+      diagnostics needed by the validation runners.
+    verification: TC-CTRL-BASE-001
+    design_element: src/vcp/controllers/
+
+  - id: SW-REQ-004
+    title: NMPC diagnostics
+    linked_system_requirements:
+      - REQ-CR-004
+      - REQ-CR-005
+    statement: >
+      The NMPC controller shall return command, predicted trajectory, solver status, solve time,
+      and constraint-violation flags.
+    verification: TC-NMPC-001
+    design_element: src/vcp/controllers/nmpc/
+
+  - id: SW-REQ-005
+    title: Estimator diagnostics
+    linked_system_requirements:
+      - REQ-CR-006
+      - REQ-CR-007
+    statement: >
+      Estimator modules shall expose estimated state, covariance or uncertainty proxy, innovation,
+      residual metrics, and reset behavior.
+    verification: TC-EST-001
+    design_element: src/vcp/estimators/
+
+  - id: SW-REQ-006
+    title: Safety supervisor
+    linked_system_requirements:
+      - REQ-CR-004
+      - REQ-CR-005
+      - REQ-CR-007
+    statement: >
+      The safety supervisor shall evaluate solver status, solve time, estimator residual, command
+      limits, communication timeout, and collision-risk flags before selecting a safety mode.
+    verification: TC-SAFE-001
+    design_element: src/vcp/validation/safety_supervisor.py
+
+  - id: SW-REQ-007
+    title: Controller interface abstraction
+    linked_system_requirements:
+      - REQ-CR-009
+      - REQ-CR-010
+    statement: >
+      Controller adapters shall implement initialize, step, reset, and get_diagnostics operations
+      so MIL, SIL, and HIL-lite tests can reuse the same test intent.
+    verification: TC-SIL-IF-001
+    design_element: src/vcp/validation/controller_interface.py
+
+  - id: SW-REQ-008
+    title: KPI computation
+    linked_system_requirements:
+      - REQ-CR-001
+      - REQ-CR-002
+      - REQ-CR-005
+      - REQ-CR-008
+    statement: >
+      The validation layer shall compute success, collision flag, road-boundary violation, tracking
+      RMSE, solve-time statistics, fallback count, and constraint-violation count.
+    verification: TC-KPI-001
+    design_element: src/vcp/validation/kpis.py
+
+  - id: SW-REQ-009
+    title: Logging signal dictionary
+    linked_system_requirements:
+      - REQ-CR-008
+    statement: >
+      The logging module shall define required signal names, units, descriptions, and sample-rate
+      metadata for controller validation runs.
+    verification: TC-LOG-001
+    design_element: src/vcp/logging/
+
+  - id: SW-REQ-010
+    title: Traceability artifact generation
+    linked_system_requirements:
+      - REQ-CR-011
+    statement: >
+      Documentation and reporting tools shall preserve links between requirement IDs, software
+      modules, verification test IDs, run artifacts, and report sections.
+    verification: TC-DOC-001
+    design_element: docs/requirements/traceability_matrix.csv
+
+  - id: SW-REQ-011
+    title: CI smoke checks
+    linked_system_requirements:
+      - REQ-CR-012
+    statement: >
+      The CI workflow shall run linting and pytest smoke checks for changes to the repository.
+    verification: TC-CI-001
+    design_element: .github/workflows/ci.yml
