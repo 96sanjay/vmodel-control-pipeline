@@ -86,6 +86,19 @@ pip install -e ".[commonroad]"
 python scripts/visualize_commonroad_scenario.py DEU_Aachen-2_1_T-1
 ```
 
+## Vehicle Model Layer
+
+Phase 3 adds a CommonRoad-independent kinematic bicycle model:
+
+```text
+state: [px, py, yaw, v]
+input: [acceleration, steering_angle]
+```
+
+The model layer includes vehicle parameters, Euler integration, command clipping, velocity/input
+constraint checks, and steering-rate checks. Controllers in later phases should depend on this
+layer instead of talking directly to CommonRoad.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
