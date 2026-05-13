@@ -155,6 +155,12 @@ references while enforcing velocity, acceleration, and steering limits.
 The acados-facing module is present as a backend hook, but native acados code generation is not
 claimed unless the external acados toolchain is installed and wired later.
 
+## Safety Supervisor
+
+Phase 9 adds deterministic fallback braking and a safety supervisor for solver failure, solver
+timeout, estimator residual growth, invalid commands, stale sensor input, and collision-risk flags.
+Each transition records a timestamp, reason code, mode, and linked requirement IDs.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

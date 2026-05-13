@@ -1,5 +1,6 @@
 """Controller implementations and interfaces."""
 
+from vcp.controllers.fallback import FallbackBrakeConfig, FallbackBrakeController
 from vcp.controllers.lqr import LQRController, LQRDiagnostics, LQRWeights, solve_discrete_lqr
 from vcp.controllers.mpc import LinearMPCConfig, LinearMPCController, LinearMPCResult
 from vcp.controllers.nmpc import (
@@ -24,6 +25,8 @@ __all__ = [
     "AcadosBackendUnavailable",
     "AcadosNMPCController",
     "CasadiNMPCController",
+    "FallbackBrakeConfig",
+    "FallbackBrakeController",
     "LQRController",
     "LQRDiagnostics",
     "LQRWeights",
