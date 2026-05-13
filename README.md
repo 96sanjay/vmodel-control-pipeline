@@ -123,6 +123,17 @@ python scripts/compare_pid_lqr_straight_path.py
 The comparison script writes controller trajectories and metrics under
 `artifacts/pid_lqr_straight_path/`.
 
+## State Estimation
+
+Phase 6 adds state-estimation baselines:
+
+```bash
+python scripts/evaluate_estimators.py
+```
+
+The estimator smoke script simulates noisy measurements, runs an EKF on the kinematic bicycle
+model, and writes RMSE/residual metrics under `artifacts/estimators/`.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
