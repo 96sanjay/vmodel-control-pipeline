@@ -161,6 +161,21 @@ Phase 9 adds deterministic fallback braking and a safety supervisor for solver f
 timeout, estimator residual growth, invalid commands, stale sensor input, and collision-risk flags.
 Each transition records a timestamp, reason code, mode, and linked requirement IDs.
 
+## MIL Smoke Validation
+
+Phase 10 adds a CI-friendly Model-in-the-Loop runner. By default it runs one manifest scenario for
+25 steps so local execution stays lightweight. Use `--max-scenarios 0` only when you intentionally
+want to run every scenario listed in the suite.
+
+```bash
+python -m vcp.validation.run_mil \
+  --suite configs/commonroad/scenario_suite.yaml \
+  --controller nmpc
+```
+
+If raw CommonRoad XML files are missing, the runner labels results as synthetic smoke scenarios
+derived from the manifest instead of claiming full CommonRoad scenario validation.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
