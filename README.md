@@ -180,6 +180,16 @@ Synthetic smoke scenarios now include straight tracking, gentle S-curve tracking
 reference changes, smooth lane changes, and highway-style gentle curves. Obstacle avoidance is
 still future work and should not be claimed until real obstacle constraints are implemented.
 
+## SIL-Style Equivalence
+
+Phase 11 adds a stable `ControllerInterface` with `initialize`, `step`, `reset`, and
+`get_diagnostics` operations. Current Python controllers can be wrapped through
+`PythonControllerAdapter` and checked back-to-back against another adapter using acceleration,
+steering, and predicted-state tolerances.
+
+Compiled controller execution is represented by `CompiledControllerAdapter`, but tests for native
+generated artifacts remain optional until an acados-generated C controller exists.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
