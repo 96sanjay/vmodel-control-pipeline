@@ -176,6 +176,10 @@ python -m vcp.validation.run_mil \
 If raw CommonRoad XML files are missing, the runner labels results as synthetic smoke scenarios
 derived from the manifest instead of claiming full CommonRoad scenario validation.
 
+Synthetic smoke scenarios now include straight tracking, gentle S-curve tracking, turn-like
+reference changes, smooth lane changes, and highway-style gentle curves. Obstacle avoidance is
+still future work and should not be claimed until real obstacle constraints are implemented.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

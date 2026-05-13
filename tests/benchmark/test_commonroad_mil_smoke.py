@@ -37,3 +37,23 @@ def test_commonroad_mil_smoke_generates_evidence(tmp_path: Path) -> None:
     assert payload["suite_name"] == "commonroad_smoke"
     assert payload["summary"]["run_count"] == 1
     assert payload["runs"][0]["controller"] == "pid"
+
+
+def test_synthetic_lane_change_reference_changes_over_time(tmp_path: Path) -> None:
+    runner = BenchmarkRunner(
+        MILRunnerConfig(
+            suite_path=ROOT / "configs/commonroad/scenario_suite.yaml",
+            output_dir=tmp_path,
+            steps=55,
+            max_scenarios=4,
+        )
+    )
+
+    results = runner.run("pid")
+    lane_change = next(result for result in results if result.scenario_id == "DEU_Ffb-1_1_T-1")
+    target_lateral_positions = [
+        float(row["target_lateral_position"]) for row in lane_change.rows
+    ]
+
+    assert target_lateral_positions[0] == 0.0
+    assert target_lateral_positions[-1] > 1.0

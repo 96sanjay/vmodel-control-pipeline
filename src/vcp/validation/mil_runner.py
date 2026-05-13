@@ -4,6 +4,7 @@ import csv
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import atan2, cos, sin
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
@@ -74,8 +75,24 @@ class MILScenarioSpec:
     dt: float
     initial_state: VehicleState
     target: PathTrackingTarget
+    reference_profile: SyntheticReferenceProfile
     source: ScenarioSource
     note: str
+
+
+@dataclass(frozen=True)
+class SyntheticReferenceProfile:
+    """Time-varying synthetic reference used before real CommonRoad paths are available."""
+
+    profile_name: str
+    base_speed: float
+    initial_lateral_position: float
+    final_lateral_position: float
+    heading_final: float = 0.0
+    maneuver_start_s: float = 1.0
+    maneuver_duration_s: float = 4.0
+    curve_amplitude_m: float = 0.0
+    curve_frequency_rad_s: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -134,7 +151,8 @@ class BenchmarkRunner:
         try:
             scenario_data = loader.load_scenario(entry.scenario_id)
         except CommonRoadLoaderError as exc:
-            initial_state, target = _synthetic_scenario(entry, self.config.target_speed)
+            initial_state, profile = _synthetic_scenario(entry, self.config.target_speed)
+            target = _target_at_time(profile, 0.0)
             return MILScenarioSpec(
                 scenario_id=entry.scenario_id,
                 difficulty=entry.difficulty,
@@ -142,6 +160,7 @@ class BenchmarkRunner:
                 dt=suite_dt,
                 initial_state=initial_state,
                 target=target,
+                reference_profile=profile,
                 source="synthetic_smoke_from_manifest",
                 note=str(exc).splitlines()[0],
             )
@@ -152,6 +171,13 @@ class BenchmarkRunner:
             lateral_position=initial_state.py,
             heading=initial_state.yaw,
         )
+        profile = SyntheticReferenceProfile(
+            profile_name="commonroad_initial_state_hold",
+            base_speed=target.speed,
+            initial_lateral_position=target.lateral_position,
+            final_lateral_position=target.lateral_position,
+            heading_final=target.heading,
+        )
         return MILScenarioSpec(
             scenario_id=entry.scenario_id,
             difficulty=entry.difficulty,
@@ -159,6 +185,7 @@ class BenchmarkRunner:
             dt=scenario_data.dt,
             initial_state=initial_state,
             target=target,
+            reference_profile=profile,
             source="commonroad_initial_state",
             note="CommonRoad XML loaded; current MIL runner uses initial state only.",
         )
@@ -178,10 +205,11 @@ class BenchmarkRunner:
 
         for step_index in range(self.config.steps):
             time_s = step_index * spec.dt
-            step = self._controller_step(controller, controller_name, state, spec)
-            lateral_error = state.py - spec.target.lateral_position
-            heading_error = normalize_angle(state.yaw - spec.target.heading)
-            speed_error = state.v - spec.target.speed
+            target = _target_at_time(spec.reference_profile, time_s)
+            step = self._controller_step(controller, controller_name, state, spec, time_s, target)
+            lateral_error = state.py - target.lateral_position
+            heading_error = normalize_angle(state.yaw - target.heading)
+            speed_error = state.v - target.speed
             road_boundary_violation = abs(lateral_error) > self.config.road_boundary_limit_m
 
             decision = supervisor.evaluate(
@@ -206,6 +234,7 @@ class BenchmarkRunner:
                     spec=spec,
                     controller_name=controller_name,
                     time_s=time_s,
+                    target=target,
                     state=state,
                     command=step["command"],
                     applied_command=applied_command,
@@ -257,10 +286,12 @@ class BenchmarkRunner:
         controller_name: str,
         state: VehicleState,
         spec: MILScenarioSpec,
+        time_s: float,
+        target: PathTrackingTarget,
     ) -> dict[str, Any]:
         start_time = perf_counter()
         if controller_name == "pid":
-            command, diagnostics = controller.compute_control(state, spec.target, spec.dt)
+            command, diagnostics = controller.compute_control(state, target, spec.dt)
             solve_time_ms = (perf_counter() - start_time) * 1000.0
             return _step_result(
                 command=command,
@@ -271,7 +302,7 @@ class BenchmarkRunner:
                 fallback_count_hint=int(diagnostics.command_saturated),
             )
         if controller_name == "lqr":
-            command, diagnostics = controller.compute_control(state, spec.target)
+            command, diagnostics = controller.compute_control(state, target)
             solve_time_ms = (perf_counter() - start_time) * 1000.0
             return _step_result(
                 command=command,
@@ -284,7 +315,7 @@ class BenchmarkRunner:
                 ),
             )
         if controller_name == "linear_mpc":
-            result = controller.compute_control(state, spec.target)
+            result = controller.compute_control(state, target)
             return _step_result(
                 command=result.command,
                 solve_time_ms=result.solve_time_ms,
@@ -293,7 +324,8 @@ class BenchmarkRunner:
                 solver_feasible=result.feasible,
             )
         if controller_name == "nmpc":
-            result = controller.compute_control(state, spec.target)
+            reference_states = _reference_horizon(state, spec, time_s, controller.config.horizon)
+            result = controller.compute_control(state, target, reference_states=reference_states)
             return _step_result(
                 command=result.command,
                 solve_time_ms=result.solve_time_ms,
@@ -373,26 +405,122 @@ def write_mil_outputs(
 def _synthetic_scenario(
     entry: ScenarioManifestEntry,
     target_speed: float,
-) -> tuple[VehicleState, PathTrackingTarget]:
+) -> tuple[VehicleState, SyntheticReferenceProfile]:
     yaw_offset = 0.0
     lateral_offset = -1.0
-    target_lateral = 0.0
+    profile = SyntheticReferenceProfile(
+        profile_name="straight_lane_follow",
+        base_speed=target_speed,
+        initial_lateral_position=0.0,
+        final_lateral_position=0.0,
+    )
     if entry.scenario_type == "urban":
         yaw_offset = 0.05
         lateral_offset = -0.8
+        profile = SyntheticReferenceProfile(
+            profile_name="urban_s_curve",
+            base_speed=0.9 * target_speed,
+            initial_lateral_position=0.0,
+            final_lateral_position=0.0,
+            curve_amplitude_m=0.45,
+            curve_frequency_rad_s=0.45,
+        )
     elif entry.scenario_type == "intersection":
         yaw_offset = -0.05
         lateral_offset = -0.6
+        profile = SyntheticReferenceProfile(
+            profile_name="intersection_turn",
+            base_speed=0.75 * target_speed,
+            initial_lateral_position=0.0,
+            final_lateral_position=0.9,
+            heading_final=0.45,
+            maneuver_start_s=1.0,
+            maneuver_duration_s=5.0,
+        )
     elif entry.scenario_type == "lane_change":
-        lateral_offset = -1.2
-        target_lateral = 0.8
+        lateral_offset = 0.0
+        profile = SyntheticReferenceProfile(
+            profile_name="smooth_lane_change",
+            base_speed=target_speed,
+            initial_lateral_position=0.0,
+            final_lateral_position=1.2,
+            maneuver_start_s=1.0,
+            maneuver_duration_s=4.0,
+        )
     elif entry.scenario_type == "highway":
         lateral_offset = -0.5
+        profile = SyntheticReferenceProfile(
+            profile_name="highway_gentle_curve",
+            base_speed=1.25 * target_speed,
+            initial_lateral_position=0.0,
+            final_lateral_position=0.0,
+            curve_amplitude_m=0.25,
+            curve_frequency_rad_s=0.30,
+        )
 
     return (
         VehicleState(px=0.0, py=lateral_offset, yaw=yaw_offset, v=0.0),
-        PathTrackingTarget(speed=target_speed, lateral_position=target_lateral, heading=0.0),
+        profile,
     )
+
+
+def _target_at_time(profile: SyntheticReferenceProfile, time_s: float) -> PathTrackingTarget:
+    progress = _smoothstep(
+        (time_s - profile.maneuver_start_s) / max(profile.maneuver_duration_s, 1e-9)
+    )
+    lateral_position = (
+        profile.initial_lateral_position
+        + (profile.final_lateral_position - profile.initial_lateral_position) * progress
+    )
+    heading = profile.heading_final * progress
+    if profile.curve_amplitude_m and profile.curve_frequency_rad_s:
+        lateral_position += profile.curve_amplitude_m * sin(profile.curve_frequency_rad_s * time_s)
+        lateral_velocity = (
+            profile.curve_amplitude_m
+            * profile.curve_frequency_rad_s
+            * cos(profile.curve_frequency_rad_s * time_s)
+        )
+        heading += atan2(lateral_velocity, max(profile.base_speed, 1e-6))
+
+    return PathTrackingTarget(
+        speed=profile.base_speed,
+        lateral_position=lateral_position,
+        heading=heading,
+    )
+
+
+def _reference_horizon(
+    state: VehicleState,
+    spec: MILScenarioSpec,
+    time_s: float,
+    horizon: int,
+) -> Any:
+    import numpy as np
+
+    reference = np.zeros((4, horizon + 1), dtype=np.float64)
+    reference_px = state.px
+    previous_target = _target_at_time(spec.reference_profile, time_s)
+    for step in range(horizon + 1):
+        target_time_s = time_s + step * spec.dt
+        target = _target_at_time(spec.reference_profile, target_time_s)
+        if step > 0:
+            reference_px += previous_target.speed * spec.dt * cos(previous_target.heading)
+        reference[:, step] = np.array(
+            [
+                reference_px,
+                target.lateral_position,
+                target.heading,
+                target.speed,
+            ],
+            dtype=np.float64,
+        )
+        previous_target = target
+    return reference
+
+
+def _smoothstep(value: float) -> float:
+    value = min(max(value, 0.0), 1.0)
+    return value * value * (3.0 - 2.0 * value)
 
 
 def _state_from_commonroad_initial_state(raw_state: object) -> VehicleState:
@@ -430,6 +558,7 @@ def _row(
     spec: MILScenarioSpec,
     controller_name: str,
     time_s: float,
+    target: PathTrackingTarget,
     state: VehicleState,
     command: VehicleInput,
     applied_command: VehicleInput,
@@ -445,6 +574,9 @@ def _row(
         "scenario_source": spec.source,
         "controller": controller_name,
         "time_s": time_s,
+        "target_speed": target.speed,
+        "target_lateral_position": target.lateral_position,
+        "target_heading": target.heading,
         "px": state.px,
         "py": state.py,
         "yaw": state.yaw,
