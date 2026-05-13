@@ -19,6 +19,9 @@ env/
 data/raw/*
 data/processed/*
 !data/raw/.gitkeep
+!data/raw/commonroad/
+!data/raw/commonroad/scenarios/
+!data/raw/commonroad/scenarios/.gitkeep
 !data/processed/.gitkeep
 *.mf4
 *.log

@@ -64,6 +64,28 @@ coverage run -m pytest
 coverage report
 ```
 
+## CommonRoad Scenario Data
+
+Phase 2 adds the CommonRoad ingestion layer, but the repository does not vendor raw benchmark
+scenarios. Place downloaded CommonRoad XML files under:
+
+```text
+data/raw/commonroad/scenarios/
+```
+
+The smoke suite manifest is:
+
+```text
+configs/commonroad/scenario_suite.yaml
+```
+
+Install optional visualization/loading dependencies only when you are ready to use real scenarios:
+
+```bash
+pip install -e ".[commonroad]"
+python scripts/visualize_commonroad_scenario.py DEU_Aachen-2_1_T-1
+```
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

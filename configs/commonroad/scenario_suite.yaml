@@ -1,0 +1,43 @@
+suite_name: commonroad_smoke
+sample_time: 0.1
+scenario_root: ../../data/raw/commonroad/scenarios
+download_note: >
+  Download CommonRoad XML scenarios from the official CommonRoad benchmark source and place them
+  under data/raw/commonroad/scenarios. The repository tracks scenario IDs and manifests, not raw
+  benchmark data.
+scenarios:
+  - id: DEU_Aachen-2_1_T-1
+    difficulty: easy
+    type: lane_following
+    tags:
+      - nominal
+      - smoke
+    description: Initial lane-following smoke scenario for loader and visualization checks.
+  - id: DEU_Muc-3_1_T-1
+    difficulty: medium
+    type: urban
+    tags:
+      - urban
+      - smoke
+    description: Urban scenario candidate for early controller comparison.
+  - id: DEU_Gar-1_1_T-1
+    difficulty: medium
+    type: intersection
+    tags:
+      - intersection
+      - obstacle
+    description: Intersection-style candidate for later constraint and fallback tests.
+  - id: DEU_Ffb-1_1_T-1
+    difficulty: medium
+    type: lane_change
+    tags:
+      - lane_change
+      - robustness
+    description: Lane-change candidate for baseline and MPC robustness checks.
+  - id: USA_US101-13_1_T-1
+    difficulty: hard
+    type: highway
+    tags:
+      - highway
+      - dense_traffic
+    description: Higher-density traffic candidate for later NMPC benchmark expansion.
