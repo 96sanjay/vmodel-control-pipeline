@@ -190,6 +190,18 @@ steering, and predicted-state tolerances.
 Compiled controller execution is represented by `CompiledControllerAdapter`, but tests for native
 generated artifacts remain optional until an acados-generated C controller exists.
 
+## HIL-Lite Validation
+
+Phase 12 adds HIL-style validation without claiming full industrial HIL. The controller can be
+exposed through a small UDP JSON protocol, and the deterministic in-process loop records command
+latency, loop time, missed deadlines, timeouts, and fallback activations.
+
+```text
+configs/hardware/hil_lite.yaml
+```
+
+Fault injection currently covers dropped requests, delayed requests, and invalid measurements.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

@@ -1,0 +1,23 @@
+mode: hil_lite
+description: >
+  HIL-style validation using a local UDP protocol or in-process deterministic loop.
+  This is not full dSPACE/Speedgoat HIL.
+loop:
+  dt: 0.05
+  steps: 20
+  command_timeout_s: 0.05
+network:
+  host: 127.0.0.1
+  port: 49000
+  max_packet_bytes: 8192
+signals:
+  - loop_time_ms
+  - command_latency_ms
+  - missed_deadline
+  - timeout
+  - fallback_active
+  - fallback_reason
+failure_injection:
+  drop_request_steps: []
+  invalid_measurement_steps: []
+  delayed_request_steps: {}
