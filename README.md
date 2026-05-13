@@ -110,6 +110,19 @@ python scripts/simulate_pid_straight_path.py
 The script writes a CSV plus SVG plots for speed error and lateral error under
 `artifacts/pid_straight_path/`. These generated artifacts are intentionally ignored by Git.
 
+## LQR Baseline
+
+Phase 5 adds a lateral Linear Quadratic Regulator baseline using a bicycle model linearized around
+a nominal velocity. It is a classical optimal-control reference between PID and future MPC/NMPC
+controllers.
+
+```bash
+python scripts/compare_pid_lqr_straight_path.py
+```
+
+The comparison script writes controller trajectories and metrics under
+`artifacts/pid_lqr_straight_path/`.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.

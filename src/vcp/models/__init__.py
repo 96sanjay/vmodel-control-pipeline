@@ -10,12 +10,15 @@ from vcp.models.constraints import (
     clip_input,
 )
 from vcp.models.kinematic_bicycle import KinematicBicycleModel, VehicleParameters
+from vcp.models.linearized_bicycle import FloatArray, LinearizedBicycleModel
 from vcp.models.vehicle_state import VehicleInput, VehicleState
 
 __all__ = [
     "ConstraintCheckResult",
     "ConstraintViolation",
+    "FloatArray",
     "KinematicBicycleModel",
+    "LinearizedBicycleModel",
     "VehicleConstraints",
     "VehicleInput",
     "VehicleParameters",

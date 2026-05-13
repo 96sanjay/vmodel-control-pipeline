@@ -1,0 +1,17 @@
+controller: lqr
+dt: 0.1
+nominal_velocity: 4.0
+wheelbase: 2.8
+weights:
+  q_lateral: 4.0
+  q_heading: 1.0
+  r_steering: 0.5
+speed_gain: 1.0
+constraints:
+  velocity_min: 0.0
+  velocity_max: 15.0
+  accel_min: -4.0
+  accel_max: 2.0
+  steer_min: -0.5
+  steer_max: 0.5
+  steer_rate_max: 0.2
