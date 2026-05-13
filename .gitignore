@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Environments
+.conda/
+.venv/
+venv/
+env/
+
+# Data and logs
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.mf4
+*.log
+
+# Local tooling
+.dvc/cache/
+.mypy_cache/
+.idea/
+.vscode/
