@@ -2,6 +2,13 @@
 
 from vcp.controllers.lqr import LQRController, LQRDiagnostics, LQRWeights, solve_discrete_lqr
 from vcp.controllers.mpc import LinearMPCConfig, LinearMPCController, LinearMPCResult
+from vcp.controllers.nmpc import (
+    AcadosBackendUnavailable,
+    AcadosNMPCController,
+    CasadiNMPCController,
+    NMPCConfig,
+    NMPCResult,
+)
 from vcp.controllers.pid import (
     PID,
     PathTrackingTarget,
@@ -14,12 +21,17 @@ from vcp.controllers.pid import (
 )
 
 __all__ = [
+    "AcadosBackendUnavailable",
+    "AcadosNMPCController",
+    "CasadiNMPCController",
     "LQRController",
     "LQRDiagnostics",
     "LQRWeights",
     "LinearMPCConfig",
     "LinearMPCController",
     "LinearMPCResult",
+    "NMPCConfig",
+    "NMPCResult",
     "PID",
     "PIDDiagnostics",
     "PIDLimits",

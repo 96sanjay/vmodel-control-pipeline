@@ -28,6 +28,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+  "casadi>=3.7",
   "cvxpy>=1.4",
   "numpy>=1.26",
   "osqp>=0.6",

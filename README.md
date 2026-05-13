@@ -146,6 +146,15 @@ python scripts/compare_pid_lqr_mpc_straight_path.py
 The comparison script writes PID, LQR, and linear MPC trajectories and metrics under
 `artifacts/pid_lqr_mpc_straight_path/`.
 
+## NMPC Controller
+
+Phase 8 adds the first nonlinear MPC problem using a CasADi symbolic kinematic bicycle model and
+IPOPT as the local nonlinear-program solver. The controller tracks position, heading, and velocity
+references while enforcing velocity, acceleration, and steering limits.
+
+The acados-facing module is present as a backend hook, but native acados code generation is not
+claimed unless the external acados toolchain is installed and wired later.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
