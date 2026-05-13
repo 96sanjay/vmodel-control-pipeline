@@ -3,7 +3,9 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
+  - cvxpy
   - numpy
+  - osqp
   - pip
   - pytest
   - coverage

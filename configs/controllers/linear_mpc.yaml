@@ -1,0 +1,22 @@
+controller: linear_mpc
+horizon: 12
+dt: 0.1
+wheelbase: 2.8
+nominal_velocity: 4.0
+weights:
+  q_lateral: 8.0
+  q_heading: 2.0
+  q_speed: 1.0
+  r_accel: 0.2
+  r_steer: 0.4
+  rd_accel: 0.05
+  rd_steer: 0.2
+solver: OSQP
+constraints:
+  velocity_min: 0.0
+  velocity_max: 15.0
+  accel_min: -4.0
+  accel_max: 2.0
+  steer_min: -0.5
+  steer_max: 0.5
+  steer_rate_max: 0.2

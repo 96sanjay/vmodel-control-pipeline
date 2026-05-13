@@ -134,6 +134,18 @@ python scripts/evaluate_estimators.py
 The estimator smoke script simulates noisy measurements, runs an EKF on the kinematic bicycle
 model, and writes RMSE/residual metrics under `artifacts/estimators/`.
 
+## Linear MPC Baseline
+
+Phase 7 adds the first constrained optimization controller. The linear MPC optimizes acceleration
+and steering over a finite horizon while enforcing input and velocity limits.
+
+```bash
+python scripts/compare_pid_lqr_mpc_straight_path.py
+```
+
+The comparison script writes PID, LQR, and linear MPC trajectories and metrics under
+`artifacts/pid_lqr_mpc_straight_path/`.
+
 ## Project Principles
 
 - Keep requirements, implementation, tests, logs, and reports traceable.
