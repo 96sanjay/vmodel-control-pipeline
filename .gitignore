@@ -23,6 +23,7 @@ data/processed/*
 !data/raw/commonroad/
 !data/raw/commonroad/scenarios/
 !data/raw/commonroad/scenarios/.gitkeep
+data/raw/commonroad/scenarios/*.xml
 !data/processed/.gitkeep
 *.mf4
 *.log

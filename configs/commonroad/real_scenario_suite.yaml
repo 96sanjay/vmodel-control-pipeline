@@ -1,0 +1,81 @@
+suite_name: commonroad_real_public_7
+sample_time: 0.1
+scenario_root: ../../data/raw/commonroad/scenarios
+source_repository: https://gitlab.lrz.de/tum-cps/commonroad-scenarios.git
+source_revision: 2416dc27faf3ee36b6799f42712da72a34a2c8fd
+download_note: >
+  These seven scenarios are present in the public CommonRoad scenarios GitLab repository. Use
+  scripts/fetch_commonroad_scenarios.py to download the XML files into data/raw/commonroad/scenarios.
+  Raw XML files are intentionally not committed to this repository.
+scenarios:
+  - id: USA_US101-1_1_T-1
+    difficulty: medium
+    type: highway
+    source_path: scenarios/recorded/NGSIM/US101/USA_US101-1_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - highway
+      - real_xml
+    description: Recorded NGSIM US101 scenario for real XML loader validation.
+  - id: USA_US101-2_1_T-1
+    difficulty: medium
+    type: highway
+    source_path: scenarios/recorded/NGSIM/US101/USA_US101-2_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - highway
+      - real_xml
+    description: Second US101 recorded scenario for regression variation.
+  - id: USA_US101-13_1_T-1
+    difficulty: hard
+    type: highway
+    source_path: scenarios/recorded/NGSIM/US101/USA_US101-13_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - highway
+      - dense_traffic
+      - real_xml
+    description: Higher-density US101 scenario already referenced by the smoke manifest.
+  - id: USA_Lanker-1_1_T-1
+    difficulty: medium
+    type: urban
+    source_path: scenarios/recorded/NGSIM/Lankershim/USA_Lanker-1_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - urban
+      - real_xml
+    description: Recorded Lankershim urban scenario for non-highway variation.
+  - id: USA_Lanker-2_1_T-1
+    difficulty: medium
+    type: urban
+    source_path: scenarios/recorded/NGSIM/Lankershim/USA_Lanker-2_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - urban
+      - real_xml
+    description: Second Lankershim scenario for urban regression variation.
+  - id: USA_Peach-1_1_T-1
+    difficulty: medium
+    type: urban
+    source_path: scenarios/recorded/NGSIM/Peachtree/USA_Peach-1_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - urban
+      - real_xml
+    description: Recorded Peachtree scenario for additional urban topology.
+  - id: USA_Peach-3_1_T-1
+    difficulty: medium
+    type: urban
+    source_path: scenarios/recorded/NGSIM/Peachtree/USA_Peach-3_1_T-1.xml
+    tags:
+      - recorded
+      - ngsim
+      - urban
+      - real_xml
+    description: Second Peachtree scenario for real XML suite breadth.

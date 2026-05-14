@@ -63,11 +63,12 @@ python -m vcp.validation.run_mil \
   --output-dir artifacts/phase14_mil_all
 ```
 
-The current repository does not include raw CommonRoad XML scenarios, so these measured results are
-synthetic smoke references derived from the scenario manifest. The code path now supports
-CommonRoad-specific lanelet, kinematic, collision, and boundary annotations when real XML files and
-optional CommonRoad-DC tooling are installed, but the table below is still not a full CommonRoad
-benchmark result.
+The repository does not commit raw CommonRoad XML scenarios, so the measured Phase 14 table below
+used synthetic smoke references derived from the original smoke manifest. A separate seven-scenario
+real XML suite is now defined in `configs/commonroad/real_scenario_suite.yaml` and can be fetched
+locally with `scripts/fetch_commonroad_scenarios.py`. The code path supports CommonRoad-specific
+lanelet, kinematic, collision, and boundary annotations when real XML files and optional
+CommonRoad-DC tooling are installed.
 
 | Controller | Success rate | Collision count | Road-boundary violations | Mean lateral RMSE | Mean speed RMSE | Max p95 solve time | Fallback count |
 |---|---:|---:|---:|---:|---:|---:|---:|

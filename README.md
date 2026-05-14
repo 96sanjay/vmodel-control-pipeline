@@ -187,6 +187,20 @@ If raw XML files are missing, the MIL runner falls back to synthetic smoke scena
 the manifest and labels the results accordingly. That keeps CI lightweight while avoiding false
 claims about full benchmark coverage.
 
+For a real local scenario set, fetch the seven-scenario public suite:
+
+```bash
+python scripts/fetch_commonroad_scenarios.py \
+  --suite configs/commonroad/real_scenario_suite.yaml
+```
+
+Check local readiness:
+
+```bash
+python scripts/check_commonroad_scenarios.py \
+  --suite configs/commonroad/real_scenario_suite.yaml
+```
+
 When real XML files are available, the MIL runner annotates each row with CommonRoad-specific
 validation evidence:
 
