@@ -26,7 +26,7 @@ flowchart LR
     G --> I
     H --> I
     I --> J[Traceability matrix]
-    I --> K[CSV and future MDF/MF4 logs]
+    I --> K[CSV logs and optional MDF/MF4 export]
 ```
 
 ## Package Boundaries
@@ -38,7 +38,7 @@ flowchart LR
 | `vcp.controllers` | PID, LQR, MPC, NMPC, and fallback controllers |
 | `vcp.estimators` | Kalman, EKF, residual metrics, and estimator diagnostics |
 | `vcp.validation` | MIL/SIL/HIL-lite runners, KPIs, interfaces, and safety supervision |
-| `vcp.logging` | Signal dictionaries, CSV logs, future MDF/MF4 export, and run metadata |
+| `vcp.logging` | Signal dictionaries, CSV logs, optional MDF/MF4 export, calibration files, and run metadata |
 | `vcp.utils` | Shared configuration and filesystem helpers |
 
 ## Controller Validation Interfaces
@@ -98,7 +98,9 @@ controller configuration, sample time, random seed, software version, and artifa
 | Controllers | `src/vcp/controllers/` | Phases 4, 5, 7, 8 |
 | Estimators | `src/vcp/estimators/` | Phase 6 |
 | Validation runners | `src/vcp/validation/` | Phases 10, 11 |
+| HIL-lite validation | `src/vcp/hil/` | Phase 12 |
 | Industrial logging | `src/vcp/logging/` | Phase 13 |
+| Final reports | `docs/reports/` | Phase 14 |
 
 ## Architecture Decisions
 

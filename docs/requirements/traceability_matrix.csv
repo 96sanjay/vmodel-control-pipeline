@@ -1,13 +1,13 @@
 requirement_id,title,hazard_ids,software_requirement_ids,design_element,verification_test_id,verification_stage,evidence_artifact,status
-REQ-CR-001,Collision avoidance,HAZ-001,SW-REQ-001;SW-REQ-008,src/vcp/validation/kpis.py,TC-CR-MIL-001,MIL,docs/reports/mil_report.md,draft
-REQ-CR-002,Road boundary compliance,HAZ-002,SW-REQ-001;SW-REQ-008,src/vcp/benchmarks/commonroad_loader.py,TC-CR-MIL-002,MIL,docs/reports/mil_report.md,draft
-REQ-CR-003,Actuator and velocity limits,HAZ-002;HAZ-003,SW-REQ-002;SW-REQ-003,src/vcp/models/constraints.py,TC-CR-MIL-003,MIL,benchmark_results/commonroad_smoke.json,draft
-REQ-CR-004,Solver infeasibility fallback,HAZ-001;HAZ-002;HAZ-003;HAZ-005,SW-REQ-004;SW-REQ-006,src/vcp/validation/safety_supervisor.py,TC-CR-MIL-004,MIL,logs/safety_transitions.csv,draft
-REQ-CR-005,Real-time feasibility,HAZ-004,SW-REQ-004;SW-REQ-008,src/vcp/controllers/nmpc/acados_nmpc.py,TC-CR-SIL-001,SIL,docs/reports/sil_report.md,draft
-REQ-CR-006,State estimation accuracy,HAZ-005,SW-REQ-005,src/vcp/estimators/,TC-CR-MIL-005,MIL,reports/estimator_metrics.json,draft
-REQ-CR-007,Estimator fault detection,HAZ-005,SW-REQ-005;SW-REQ-006,src/vcp/validation/safety_supervisor.py,TC-CR-MIL-006,MIL,logs/estimator_residuals.csv,draft
-REQ-CR-008,Industrial-style measurement logging,HAZ-001;HAZ-006,SW-REQ-008;SW-REQ-009,src/vcp/logging/,TC-CR-MIL-007,MIL,logs/commonroad_smoke.mf4,draft
-REQ-CR-009,MIL to SIL equivalence,,SW-REQ-007,src/vcp/validation/controller_interface.py,TC-CR-SIL-002,SIL,docs/reports/sil_equivalence_report.md,draft
-REQ-CR-010,HIL-lite timing and communication evidence,HAZ-004,SW-REQ-007,src/vcp/hil/,TC-CR-HIL-001,HIL-lite,docs/reports/hil_lite_report.md,draft
-REQ-CR-011,Requirement traceability,HAZ-006,SW-REQ-010,docs/requirements/traceability_matrix.csv,TC-DOC-001,Documentation,docs/requirements/traceability_matrix.csv,draft
-REQ-CR-012,Reproducible smoke execution,HAZ-006,SW-REQ-011,.github/workflows/ci.yml,TC-CI-001,CI,ci/test-results.xml,draft
+REQ-CR-001,Collision avoidance,HAZ-001,SW-REQ-001;SW-REQ-008,src/vcp/validation/kpis.py,TC-CR-MIL-001,MIL,docs/reports/mil_report.md,smoke-implemented
+REQ-CR-002,Road boundary compliance,HAZ-002,SW-REQ-001;SW-REQ-008,src/vcp/benchmarks/commonroad_loader.py,TC-CR-MIL-002,MIL,docs/reports/mil_report.md,smoke-implemented
+REQ-CR-003,Actuator and velocity limits,HAZ-002;HAZ-003,SW-REQ-002;SW-REQ-003,src/vcp/models/constraints.py,TC-CR-MIL-003,MIL,tests/unit/test_vehicle_model.py,implemented
+REQ-CR-004,Solver infeasibility fallback,HAZ-001;HAZ-002;HAZ-003;HAZ-005,SW-REQ-004;SW-REQ-006,src/vcp/validation/safety_supervisor.py,TC-CR-MIL-004,MIL,tests/unit/test_safety_supervisor.py,implemented
+REQ-CR-005,Real-time feasibility,HAZ-004,SW-REQ-004;SW-REQ-008,src/vcp/controllers/nmpc/acados_nmpc.py,TC-CR-SIL-001,SIL,docs/reports/sil_report.md,smoke-implemented
+REQ-CR-006,State estimation accuracy,HAZ-005,SW-REQ-005,src/vcp/estimators/,TC-CR-MIL-005,MIL,tests/unit/test_ekf.py,implemented
+REQ-CR-007,Estimator fault detection,HAZ-005,SW-REQ-005;SW-REQ-006,src/vcp/validation/safety_supervisor.py,TC-CR-MIL-006,MIL,tests/unit/test_ekf.py,implemented
+REQ-CR-008,Industrial-style measurement logging,HAZ-001;HAZ-006,SW-REQ-008;SW-REQ-009,src/vcp/logging/,TC-CR-MIL-007,MIL,tests/unit/test_signal_logging.py,implemented
+REQ-CR-009,MIL to SIL equivalence,,SW-REQ-007,src/vcp/validation/controller_interface.py,TC-CR-SIL-002,SIL,docs/reports/sil_report.md,implemented
+REQ-CR-010,HIL-lite timing and communication evidence,HAZ-004,SW-REQ-007,src/vcp/hil/,TC-CR-HIL-001,HIL-lite,docs/reports/hil_lite_report.md,implemented
+REQ-CR-011,Requirement traceability,HAZ-006,SW-REQ-010,docs/requirements/traceability_matrix.csv,TC-DOC-001,Documentation,tests/unit/test_documentation_traceability.py,implemented
+REQ-CR-012,Reproducible smoke execution,HAZ-006,SW-REQ-011,.github/workflows/ci.yml,TC-CI-001,CI,.github/workflows/ci.yml,implemented

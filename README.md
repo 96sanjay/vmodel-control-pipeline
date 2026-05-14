@@ -1,11 +1,10 @@
 # V-Model Validation Pipeline for Optimization-Based Control Algorithms
 
-This repository is the starting point for an industry-inspired validation framework for
-optimization-based control algorithms. The primary case study will be NMPC motion control on
-CommonRoad benchmark scenarios, with a later secondary case study for CityLearn and OpenDSS energy
-management.
+This repository is an industry-inspired validation framework for optimization-based control
+algorithms. The primary case study is CommonRoad-style road-motion control, using a reusable
+workflow that connects requirements, controller code, tests, logs, reports, and traceability.
 
-The project is intentionally structured around an engineering workflow rather than a single
+The project is intentionally structured as a miniature engineering program rather than a single
 controller demo:
 
 ```text
@@ -13,28 +12,124 @@ Requirements -> modeling -> PID/LQR/Kalman baselines -> MPC/NMPC
 -> MIL -> SIL -> HIL-lite -> logging -> traceability -> reports
 ```
 
-## Current Scope
+## Why This Project Exists
 
-Phase 0 created the production-style repository skeleton. Phase 1 adds the V-model-inspired
-requirements, hazard log, traceability matrix, system architecture, and validation plan.
+Control employers care about more than "I made a controller work once." They want evidence that a
+control algorithm can be packaged, tested, compared against baselines, monitored for timing and
+fallback behavior, and explained through reproducible artifacts.
 
-Control algorithms, CommonRoad ingestion, MIL/SIL/HIL-lite runners, and industrial logging will be
-added in later phases.
+This project currently demonstrates that workflow for a road-motion control problem. The
+CityLearn/OpenDSS energy-management case study is intentionally deferred until the CommonRoad path
+is stronger.
 
-## Repository Layout
+## Architecture
 
-```text
-docs/                 Requirements, hazards, architecture, reports, and figures
-configs/              Scenario, controller, estimator, and hardware configuration
-data/                 Raw and processed data manifests; large data should be DVC-tracked
-src/vcp/              Python package for the validation control pipeline
-tests/                Unit, integration, benchmark, SIL, and HIL-lite tests
-scripts/              Developer and workflow helper scripts
-docker/               Docker-related support files
-.github/workflows/   CI workflow definitions
+```mermaid
+flowchart LR
+    A[Requirements and hazards] --> B[Architecture and interfaces]
+    B --> C[Vehicle model]
+    B --> D[Controllers PID LQR MPC NMPC]
+    B --> E[Estimators Kalman EKF]
+    C --> F[MIL runner]
+    D --> F
+    E --> F
+    F --> G[SIL equivalence]
+    G --> H[HIL-lite loop]
+    F --> I[KPIs and reports]
+    H --> I
+    I --> J[Traceability matrix]
+    I --> K[CSV logs and optional MF4 export]
 ```
 
-## Quick Start
+Important boundaries:
+
+| Area | Location | Purpose |
+|---|---|---|
+| Requirements and hazards | `docs/requirements/`, `docs/hazards/` | V-model-inspired engineering thread |
+| Benchmark adapter | `src/vcp/benchmarks/` | CommonRoad manifest and scenario loading |
+| Plant model | `src/vcp/models/` | Kinematic bicycle state, input, integration, constraints |
+| Controllers | `src/vcp/controllers/` | PID, LQR, linear MPC, CasADi NMPC, fallback brake |
+| Estimators | `src/vcp/estimators/` | Linear Kalman filter and EKF |
+| Validation | `src/vcp/validation/` | MIL runner, SIL equivalence, KPIs, safety supervisor |
+| HIL-lite | `src/vcp/hil/` | UDP-style protocol, controller server, timing loop |
+| Logging | `src/vcp/logging/` | Signal dictionary, CSV logs, optional MF4, calibration loading |
+
+## Toolchain
+
+Core stack:
+
+| Layer | Tools |
+|---|---|
+| Language | Python 3.11 |
+| Models and numerics | NumPy, SciPy-compatible patterns |
+| Classical control | PID, LQR |
+| Estimation | Kalman filter, EKF |
+| Optimization control | CVXPY/OSQP linear MPC, CasADi/IPOPT NMPC |
+| Testing | pytest, Ruff, coverage-ready layout |
+| Reproducibility | Docker, GitHub Actions, config files |
+| Evidence | JSON, CSV, Markdown, SVG plots, optional ASAM MDF/MF4 export |
+
+Optional logging dependencies:
+
+```bash
+pip install -e ".[logging]"
+```
+
+MF4 export is supported when `asammdf` is installed. CSV remains the default so the project stays
+portable in CI and local development.
+
+## Algorithms Implemented
+
+| Algorithm | Status | Role |
+|---|---|---|
+| PID | Implemented | Simple speed and steering baseline |
+| LQR | Implemented | Classical state-space lateral-control baseline |
+| Kalman filter | Implemented | Linear estimator baseline |
+| EKF | Implemented | Nonlinear vehicle-state estimation |
+| Linear MPC | Implemented | First constrained optimization controller |
+| CasADi NMPC | Implemented | Nonlinear optimization controller for tracking |
+| Safety supervisor | Implemented | Fallback decisions for solver, timing, estimator, command, and communication faults |
+
+## Validation Workflow
+
+| Stage | Current evidence |
+|---|---|
+| Requirements | YAML requirements, hazard log, traceability matrix |
+| MIL | Controller comparison on synthetic smoke references derived from the CommonRoad manifest |
+| SIL | Back-to-back equivalence through stable controller adapters |
+| HIL-lite | In-process/UDP-style loop with latency, timeout, missed-deadline, and fallback logging |
+| Logging | Signal dictionary, CSV logs, JSON metadata, optional MF4 export hook |
+
+The wording is deliberate: this is **V-model-inspired**, **ISO 26262-inspired**, and
+**HIL-lite**. It is not a certified safety project and does not claim full dSPACE/Speedgoat HIL.
+
+## Results Snapshot
+
+Fresh Phase 14 smoke run:
+
+```bash
+python -m vcp.validation.run_mil \
+  --suite configs/commonroad/scenario_suite.yaml \
+  --controller all \
+  --max-scenarios 0 \
+  --steps 120 \
+  --output-dir artifacts/phase14_mil_all
+```
+
+These results use synthetic tracking references when raw CommonRoad XML files are not present.
+
+| Controller | Success rate | Collision count | Mean lateral RMSE | Mean speed RMSE | Max p95 solve time | Fallback count |
+|---|---:|---:|---:|---:|---:|---:|
+| PID | 0.80 | 0 | 0.3211 m | 0.9891 m/s | 0.02 ms | 0 |
+| LQR | 0.80 | 0 | 0.3177 m | 0.9845 m/s | 0.01 ms | 0 |
+| Linear MPC | 0.80 | 0 | 0.3027 m | 0.9623 m/s | 62.73 ms | 0 |
+| NMPC | 1.00 | 0 | 0.2285 m | 0.9601 m/s | 2.66 ms | 0 |
+
+Interpretation: NMPC currently performs best on the harder synthetic tracking cases, especially
+turn-like and lane-change references. This is not yet proof of obstacle avoidance, because full
+CommonRoad collision/drivability checking is still future work.
+
+## How To Run
 
 Create or activate the project-local conda environment:
 
@@ -43,129 +138,20 @@ conda env create --prefix ./.conda -f environment.yml
 conda activate ./.conda
 ```
 
-Run the starter test suite:
+Run tests and lint:
 
 ```bash
 pytest
+ruff check src tests scripts
 ```
 
-Build the base container image:
+Build the container:
 
 ```bash
 docker build -t vcp .
 ```
 
-## Development Commands
-
-```bash
-pytest
-ruff check src tests
-coverage run -m pytest
-coverage report
-```
-
-## CommonRoad Scenario Data
-
-Phase 2 adds the CommonRoad ingestion layer, but the repository does not vendor raw benchmark
-scenarios. Place downloaded CommonRoad XML files under:
-
-```text
-data/raw/commonroad/scenarios/
-```
-
-The smoke suite manifest is:
-
-```text
-configs/commonroad/scenario_suite.yaml
-```
-
-Install optional visualization/loading dependencies only when you are ready to use real scenarios:
-
-```bash
-pip install -e ".[commonroad]"
-python scripts/visualize_commonroad_scenario.py DEU_Aachen-2_1_T-1
-```
-
-## Vehicle Model Layer
-
-Phase 3 adds a CommonRoad-independent kinematic bicycle model:
-
-```text
-state: [px, py, yaw, v]
-input: [acceleration, steering_angle]
-```
-
-The model layer includes vehicle parameters, Euler integration, command clipping, velocity/input
-constraint checks, and steering-rate checks. Controllers in later phases should depend on this
-layer instead of talking directly to CommonRoad.
-
-## PID Baseline
-
-Phase 4 adds the first closed-loop controller baseline:
-
-```bash
-python scripts/simulate_pid_straight_path.py
-```
-
-The script writes a CSV plus SVG plots for speed error and lateral error under
-`artifacts/pid_straight_path/`. These generated artifacts are intentionally ignored by Git.
-
-## LQR Baseline
-
-Phase 5 adds a lateral Linear Quadratic Regulator baseline using a bicycle model linearized around
-a nominal velocity. It is a classical optimal-control reference between PID and future MPC/NMPC
-controllers.
-
-```bash
-python scripts/compare_pid_lqr_straight_path.py
-```
-
-The comparison script writes controller trajectories and metrics under
-`artifacts/pid_lqr_straight_path/`.
-
-## State Estimation
-
-Phase 6 adds state-estimation baselines:
-
-```bash
-python scripts/evaluate_estimators.py
-```
-
-The estimator smoke script simulates noisy measurements, runs an EKF on the kinematic bicycle
-model, and writes RMSE/residual metrics under `artifacts/estimators/`.
-
-## Linear MPC Baseline
-
-Phase 7 adds the first constrained optimization controller. The linear MPC optimizes acceleration
-and steering over a finite horizon while enforcing input and velocity limits.
-
-```bash
-python scripts/compare_pid_lqr_mpc_straight_path.py
-```
-
-The comparison script writes PID, LQR, and linear MPC trajectories and metrics under
-`artifacts/pid_lqr_mpc_straight_path/`.
-
-## NMPC Controller
-
-Phase 8 adds the first nonlinear MPC problem using a CasADi symbolic kinematic bicycle model and
-IPOPT as the local nonlinear-program solver. The controller tracks position, heading, and velocity
-references while enforcing velocity, acceleration, and steering limits.
-
-The acados-facing module is present as a backend hook, but native acados code generation is not
-claimed unless the external acados toolchain is installed and wired later.
-
-## Safety Supervisor
-
-Phase 9 adds deterministic fallback braking and a safety supervisor for solver failure, solver
-timeout, estimator residual growth, invalid commands, stale sensor input, and collision-risk flags.
-Each transition records a timestamp, reason code, mode, and linked requirement IDs.
-
-## MIL Smoke Validation
-
-Phase 10 adds a CI-friendly Model-in-the-Loop runner. By default it runs one manifest scenario for
-25 steps so local execution stays lightweight. Use `--max-scenarios 0` only when you intentionally
-want to run every scenario listed in the suite.
+Run a quick MIL benchmark:
 
 ```bash
 python -m vcp.validation.run_mil \
@@ -173,65 +159,52 @@ python -m vcp.validation.run_mil \
   --controller nmpc
 ```
 
-If raw CommonRoad XML files are missing, the runner labels results as synthetic smoke scenarios
-derived from the manifest instead of claiming full CommonRoad scenario validation.
-
-Synthetic smoke scenarios now include straight tracking, gentle S-curve tracking, turn-like
-reference changes, smooth lane changes, and highway-style gentle curves. Obstacle avoidance is
-still future work and should not be claimed until real obstacle constraints are implemented.
-
-## SIL-Style Equivalence
-
-Phase 11 adds a stable `ControllerInterface` with `initialize`, `step`, `reset`, and
-`get_diagnostics` operations. Current Python controllers can be wrapped through
-`PythonControllerAdapter` and checked back-to-back against another adapter using acceleration,
-steering, and predicted-state tolerances.
-
-Compiled controller execution is represented by `CompiledControllerAdapter`, but tests for native
-generated artifacts remain optional until an acados-generated C controller exists.
-
-## HIL-Lite Validation
-
-Phase 12 adds HIL-style validation without claiming full industrial HIL. The controller can be
-exposed through a small UDP JSON protocol, and the deterministic in-process loop records command
-latency, loop time, missed deadlines, timeouts, and fallback activations.
-
-```text
-configs/hardware/hil_lite.yaml
-```
-
-Fault injection currently covers dropped requests, delayed requests, and invalid measurements.
-
-## Industrial-Style Logging and Calibration
-
-Phase 13 adds a signal dictionary, CSV signal logs with JSON metadata sidecars, YAML calibration
-loading, and a replay script that summarizes logs and creates lightweight SVG plots.
-
-```text
-configs/hardware/signal_dictionary.yaml
-configs/controllers/default_calibration.yaml
-```
-
-MF4 export is supported when the optional `asammdf` dependency is installed; CSV remains the
-portable default for CI and local development.
+Replay a signal log:
 
 ```bash
 python scripts/replay_signal_log.py artifacts/example/controller_signals.csv
 ```
 
-## Project Principles
+## CommonRoad Data
 
-- Keep requirements, implementation, tests, logs, and reports traceable.
-- Use "V-model-inspired", "ISO 26262-inspired", and "HIL-lite" wording unless actual certified
-  tools and processes are used.
-- Build the CommonRoad control case first before adding the CityLearn/OpenDSS transfer case.
-- Prefer reproducible scripts, tests, and reports over notebook-only results.
+The repository does not vendor raw CommonRoad benchmark XML files. Place downloaded scenarios here:
 
-## Phase 1 Documentation
+```text
+data/raw/commonroad/scenarios/
+```
 
-- [System requirements](docs/requirements/system_requirements.yaml)
-- [Software requirements](docs/requirements/software_requirements.yaml)
-- [Hazard log](docs/hazards/hazard_log.yaml)
-- [Traceability matrix](docs/requirements/traceability_matrix.csv)
+If raw XML files are missing, the MIL runner falls back to synthetic smoke scenarios derived from
+the manifest and labels the results accordingly. That keeps CI lightweight while avoiding false
+claims about full benchmark coverage.
+
+## Main Reports
+
+- [Final report](docs/reports/final_report.md)
+- [MIL report](docs/reports/mil_report.md)
+- [SIL report](docs/reports/sil_report.md)
+- [HIL-lite report](docs/reports/hil_lite_report.md)
 - [System architecture](docs/architecture/system_architecture.md)
+- [Traceability matrix](docs/requirements/traceability_matrix.csv)
 - [Validation plan](docs/reports/validation_plan.md)
+
+## Limitations
+
+- Current MIL results are smoke validation, not complete CommonRoad benchmark certification.
+- Collision count is logged, but real obstacle collision checking is not complete until the
+  CommonRoad drivability checker is integrated into the closed-loop runner.
+- The NMPC backend currently uses CasADi/IPOPT locally; native acados C code generation is a future
+  integration point.
+- SIL currently validates stable controller interfaces and Python back-to-back equivalence; compiled
+  generated-code execution is optional and not yet wired.
+- HIL-lite validates timing and communication behavior on a local machine; it is not full dSPACE,
+  Speedgoat, ECU, or CANape/INCA validation.
+- The secondary CityLearn/OpenDSS case study has not started yet.
+
+## Future Work
+
+- Integrate real CommonRoad XML scenarios into full closed-loop path and obstacle validation.
+- Add CommonRoad drivability-checker collision, feasibility, and road-compliance assessments.
+- Generate or package an acados C controller for stronger SIL evidence.
+- Add virtual CAN/DBC examples with `python-can` and `cantools`.
+- Add the CityLearn/OpenDSS energy-management transfer case after the road-motion workflow is
+  stronger.
