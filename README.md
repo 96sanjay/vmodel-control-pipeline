@@ -87,6 +87,10 @@ pip install -e ".[commonroad,commonroad-drivability]"
 The project uses these optional packages only when real CommonRoad XML scenarios and the
 CommonRoad-DC tooling are available.
 
+The CommonRoad-DC path currently pins `commonroad-io<2026` because
+`commonroad-drivability-checker 2025.4.0` expects module paths that changed in `commonroad-io
+2026.1`.
+
 ## Algorithms Implemented
 
 | Algorithm | Status | Role |
@@ -238,6 +242,7 @@ optional and only needed for DBC parsing or conversion to `python-can` messages.
 - [MIL report](docs/reports/mil_report.md)
 - [SIL report](docs/reports/sil_report.md)
 - [HIL-lite report](docs/reports/hil_lite_report.md)
+- [CommonRoad drivability report](docs/reports/commonroad_drivability_report.md)
 - [System architecture](docs/architecture/system_architecture.md)
 - [Traceability matrix](docs/requirements/traceability_matrix.csv)
 - [Validation plan](docs/reports/validation_plan.md)

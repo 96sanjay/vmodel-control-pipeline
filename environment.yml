@@ -13,6 +13,7 @@ dependencies:
   - ruff
   - pre-commit
   - pip:
-      - -e .[commonroad]
+      - -e .[commonroad,commonroad-drivability]
 variables:
   PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+  MPLCONFIGDIR: "/tmp/matplotlib"

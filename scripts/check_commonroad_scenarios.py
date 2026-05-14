@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 
 def main() -> int:
@@ -22,11 +25,15 @@ def main() -> int:
     scenario_root = _resolve_suite_root(args.suite, suite)
     commonroad_available = importlib.util.find_spec("commonroad") is not None
     commonroad_dc_available = importlib.util.find_spec("commonroad_dc") is not None
+    commonroad_dc_functional, commonroad_dc_note = _check_commonroad_dc_functional()
 
     print(f"Suite: {suite.get('suite_name')}")
     print(f"Scenario root: {scenario_root}")
     print(f"commonroad-io installed: {commonroad_available}")
     print(f"commonroad-dc installed: {commonroad_dc_available}")
+    print(f"commonroad-dc collision/boundary APIs import: {commonroad_dc_functional}")
+    if commonroad_dc_note:
+        print(f"commonroad-dc note: {commonroad_dc_note}")
 
     missing_count = 0
     for scenario in suite["scenarios"]:
@@ -51,6 +58,21 @@ def main() -> int:
 
     print("All scenario XML files are present and commonroad-io is available.")
     return 0
+
+
+def _check_commonroad_dc_functional() -> tuple[bool, str]:
+    if importlib.util.find_spec("commonroad_dc") is None:
+        return False, "commonroad_dc package is not installed"
+    try:
+        from commonroad_dc.boundary.boundary import create_road_boundary_obstacle
+        from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import (
+            create_collision_checker,
+        )
+    except Exception as exc:
+        return False, str(exc)
+    if create_collision_checker is None or create_road_boundary_obstacle is None:
+        return False, "CommonRoad-DC imports returned empty symbols"
+    return True, ""
 
 
 def _load_suite(path: Path) -> dict[str, Any]:

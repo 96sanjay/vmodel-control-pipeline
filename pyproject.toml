@@ -46,7 +46,7 @@ tracking = [
   "mlflow>=2.12",
 ]
 commonroad = [
-  "commonroad-io",
+  "commonroad-io>=2024.3,<2026",
   "matplotlib>=3.8",
 ]
 logging = [
@@ -55,6 +55,7 @@ logging = [
   "python-can>=4.3",
 ]
 commonroad-drivability = [
+  "commonroad-io>=2024.3,<2026",
   "commonroad-drivability-checker",
 ]
 

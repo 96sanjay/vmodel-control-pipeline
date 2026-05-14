@@ -81,6 +81,18 @@ Interpretation: the current NMPC controller is strongest on the smoke suite beca
 harder turn-like and lane-change references better than the baselines. Linear MPC improves tracking
 over PID/LQR but pays more solver overhead through CVXPY/OSQP in this local implementation.
 
+## Real CommonRoad Drivability Evidence
+
+A seven-scenario real XML suite is defined in `configs/commonroad/real_scenario_suite.yaml`.
+With `commonroad-io==2024.3` and `commonroad-drivability-checker==2025.4.0`, the MIL runner now
+activates CommonRoad-DC checks. The first full seven-scenario run is summarized in
+`docs/reports/commonroad_drivability_report.md`.
+
+The result is intentionally not polished: only 1 of 7 scenarios passed. The checks found real
+road-boundary violations, collision flags, kinematic violations, and fallback activations. This is
+useful because it exposes the next missing engineering layer: the controller needs real route
+extraction and obstacle-aware behavior, not just initial-state tracking.
+
 ## SIL Evidence
 
 The current SIL stage validates the controller interface and back-to-back equivalence using Python
