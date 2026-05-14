@@ -207,13 +207,17 @@ python scripts/check_commonroad_scenarios.py \
 ```
 
 When real XML files are available, the MIL runner extracts a progress-based lanelet/goal reference
-path and annotates each row with CommonRoad-specific validation evidence:
+path, computes nearby-obstacle risk, and annotates each row with CommonRoad-specific validation
+evidence:
 
 | Field | Meaning |
 |---|---|
 | `scenario_source` | `commonroad_reference_path` when a real lanelet reference was used |
 | `reference_start_lanelet_id` | Lanelet containing the initial ego position |
 | `reference_goal_lanelet_ids` | Goal lanelet IDs extracted from the planning problem or goal shape |
+| `obstacle_risk_flag` | Conservative safety-stop logic saw a blocking obstacle ahead |
+| `nearby_obstacle_count` | Number of obstacles within the local monitoring radius |
+| `blocking_obstacle_count` | Number of obstacles currently treated as route blockers |
 | `commonroad_lanelet_checked` | Lanelet-network membership check was available |
 | `commonroad_dc_checked` | CommonRoad-DC collision or boundary checker was available |
 | `commonroad_kinematic_violation` | Vehicle state or applied command violated configured limits |
@@ -228,7 +232,7 @@ python -m vcp.validation.run_mil \
   --controller nmpc \
   --max-scenarios 0 \
   --steps 25 \
-  --output-dir artifacts/step1_progress_reference_mil_7
+  --output-dir artifacts/step2_obstacle_stop_mil_7_v2
 ```
 
 ## Virtual CAN

@@ -13,6 +13,11 @@ import numpy as np
 
 from vcp.benchmarks.commonroad_drivability import annotate_rows_with_commonroad_drivability
 from vcp.benchmarks.commonroad_loader import CommonRoadLoaderError, CommonRoadScenarioLoader
+from vcp.benchmarks.commonroad_obstacles import (
+    CommonRoadObstacleAssessment,
+    CommonRoadObstacleConfig,
+    assess_commonroad_obstacles,
+)
 from vcp.benchmarks.commonroad_reference import (
     CommonRoadReferencePath,
     build_commonroad_reference_path,
@@ -61,6 +66,13 @@ class MILRunnerConfig:
     max_solve_time_ms: float = 95.0
     nmpc_horizon: int = 5
     linear_mpc_horizon: int = 8
+    obstacle_nearby_radius_m: float = 45.0
+    obstacle_route_lookahead_m: float = 20.0
+    obstacle_time_headway_s: float = 2.0
+    obstacle_ttc_threshold_s: float = 1.5
+    obstacle_minimum_closing_speed_mps: float = 0.5
+    obstacle_route_lateral_margin_m: float = 0.75
+    obstacle_emergency_distance_m: float = 8.0
 
     def __post_init__(self) -> None:
         if self.steps <= 0:
@@ -77,6 +89,17 @@ class MILRunnerConfig:
             raise ValueError("nmpc_horizon must be positive")
         if self.linear_mpc_horizon <= 0:
             raise ValueError("linear_mpc_horizon must be positive")
+        for name, value in (
+            ("obstacle_nearby_radius_m", self.obstacle_nearby_radius_m),
+            ("obstacle_route_lookahead_m", self.obstacle_route_lookahead_m),
+            ("obstacle_time_headway_s", self.obstacle_time_headway_s),
+            ("obstacle_ttc_threshold_s", self.obstacle_ttc_threshold_s),
+            ("obstacle_minimum_closing_speed_mps", self.obstacle_minimum_closing_speed_mps),
+            ("obstacle_route_lateral_margin_m", self.obstacle_route_lateral_margin_m),
+            ("obstacle_emergency_distance_m", self.obstacle_emergency_distance_m),
+        ):
+            if value <= 0.0:
+                raise ValueError(f"{name} must be positive")
 
 
 @dataclass(frozen=True)
@@ -234,6 +257,15 @@ class BenchmarkRunner:
                 max_solve_time_ms=self.config.max_solve_time_ms,
             )
         )
+        obstacle_config = CommonRoadObstacleConfig(
+            nearby_radius_m=self.config.obstacle_nearby_radius_m,
+            route_lookahead_m=self.config.obstacle_route_lookahead_m,
+            time_headway_s=self.config.obstacle_time_headway_s,
+            ttc_threshold_s=self.config.obstacle_ttc_threshold_s,
+            minimum_closing_speed_mps=self.config.obstacle_minimum_closing_speed_mps,
+            route_lateral_margin_m=self.config.obstacle_route_lateral_margin_m,
+            emergency_distance_m=self.config.obstacle_emergency_distance_m,
+        )
         rows: list[dict[str, Any]] = []
 
         for step_index in range(self.config.steps):
@@ -244,6 +276,12 @@ class BenchmarkRunner:
             heading_error = normalize_angle(state.yaw - target.heading)
             speed_error = state.v - target.speed
             road_boundary_violation = abs(lateral_error) > self.config.road_boundary_limit_m
+            obstacle_assessment = _obstacle_assessment(
+                spec,
+                state,
+                step_index,
+                obstacle_config,
+            )
 
             decision = supervisor.evaluate(
                 SafetyEvaluationInput(
@@ -253,7 +291,9 @@ class BenchmarkRunner:
                     solver_feasible=bool(step["solver_feasible"]),
                     solve_time_ms=float(step["solve_time_ms"]),
                     estimator_residual=0.0,
-                    collision_risk=False,
+                    collision_risk=bool(
+                        obstacle_assessment is not None and obstacle_assessment.collision_risk
+                    ),
                     missing_sensor_message=False,
                     communication_timeout=False,
                     constraint_violation_flags=tuple(step["constraint_violation_flags"]),
@@ -277,6 +317,7 @@ class BenchmarkRunner:
                     road_boundary_violation=road_boundary_violation,
                     step=step,
                     decision=decision,
+                    obstacle_assessment=obstacle_assessment,
                 )
             )
             state = plant.step(state, applied_command, spec.dt)
@@ -607,6 +648,26 @@ def _state_from_commonroad_initial_state(raw_state: object) -> VehicleState:
     return VehicleState(px=px, py=py, yaw=yaw, v=velocity)
 
 
+def _obstacle_assessment(
+    spec: MILScenarioSpec,
+    state: VehicleState,
+    step_index: int,
+    obstacle_config: CommonRoadObstacleConfig,
+) -> CommonRoadObstacleAssessment | None:
+    if (
+        spec.scenario_data is None
+        or not isinstance(spec.reference_profile, CommonRoadReferencePath)
+    ):
+        return None
+    return assess_commonroad_obstacles(
+        spec.scenario_data,
+        spec.reference_profile,
+        state,
+        time_step=step_index,
+        config=obstacle_config,
+    )
+
+
 def _step_result(
     *,
     command: VehicleInput,
@@ -643,6 +704,7 @@ def _row(
     road_boundary_violation: bool,
     step: dict[str, Any],
     decision: Any,
+    obstacle_assessment: CommonRoadObstacleAssessment | None,
 ) -> dict[str, Any]:
     return {
         "suite_scenario_id": spec.scenario_id,
@@ -672,6 +734,25 @@ def _row(
         "solver_status": step["solver_status"],
         "solver_feasible": bool(step["solver_feasible"]),
         "solve_time_ms": float(step["solve_time_ms"]),
+        "obstacle_risk_flag": bool(
+            obstacle_assessment is not None and obstacle_assessment.collision_risk
+        ),
+        "nearby_obstacle_count": len(obstacle_assessment.nearby_obstacles)
+        if obstacle_assessment is not None
+        else 0,
+        "blocking_obstacle_count": len(obstacle_assessment.blocking_obstacle_ids)
+        if obstacle_assessment is not None
+        else 0,
+        "blocking_obstacle_ids": ";".join(
+            str(item) for item in obstacle_assessment.blocking_obstacle_ids
+        )
+        if obstacle_assessment is not None
+        else "",
+        "nearest_obstacle_distance_m": (
+            obstacle_assessment.nearest_obstacle_distance_m
+            if obstacle_assessment is not None
+            else ""
+        ),
         "safety_mode": decision.mode.value,
         "fallback_active": decision.fallback_required,
         "fallback_reason": decision.reason_code,
