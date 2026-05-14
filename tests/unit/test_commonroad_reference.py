@@ -6,7 +6,9 @@ import numpy as np
 
 from vcp.benchmarks.commonroad_reference import (
     build_commonroad_reference_path,
+    build_reference_horizon_from_state,
     sample_reference_path_at_time,
+    sample_reference_path_for_state,
 )
 
 
@@ -98,20 +100,78 @@ def test_commonroad_reference_follows_successor_lanelets() -> None:
     assert sample.py == 0.0
 
 
+def test_commonroad_reference_uses_goal_time_to_slow_short_route() -> None:
+    network = FakeLaneletNetwork([FakeLanelet(1, [(0.0, 0.0), (40.0, 0.0)])])
+    scenario_data = _scenario_data(
+        network,
+        start=(0.0, 0.0),
+        goal_lanelet_id=1,
+        goal=(40.0, 0.0),
+        goal_time_steps=(9.0, 11.0),
+        goal_velocity_mps=(12.0, 14.0),
+        dt=1.0,
+    )
+
+    reference = build_commonroad_reference_path(scenario_data, default_speed=13.0)
+
+    assert reference.route_length_m == 40.0
+    assert reference.goal_time_s == 10.0
+    assert reference.speed == 4.0
+
+
+def test_commonroad_reference_target_and_horizon_follow_projected_progress() -> None:
+    network = FakeLaneletNetwork(
+        [
+            FakeLanelet(1, [(0.0, 0.0), (50.0, 0.0)], successor=[2]),
+            FakeLanelet(2, [(50.0, 0.0), (100.0, 0.0)]),
+        ]
+    )
+    scenario_data = _scenario_data(network, start=(0.0, 0.0), goal_lanelet_id=2, goal=(100.0, 0.0))
+    reference = build_commonroad_reference_path(scenario_data, default_speed=5.0)
+
+    target = sample_reference_path_for_state(
+        reference,
+        position=np.asarray([60.0, 0.5], dtype=float),
+        current_speed=5.0,
+    )
+    horizon = build_reference_horizon_from_state(
+        reference,
+        position=np.asarray([60.0, 0.5], dtype=float),
+        current_speed=5.0,
+        dt=1.0,
+        horizon=2,
+    )
+
+    assert target.progress_m > 60.0
+    assert horizon[0, 0] == 60.0
+    assert horizon[0, 1] == 65.0
+    assert horizon[0, 2] == 70.0
+
+
 def _scenario_data(
     network: FakeLaneletNetwork,
     *,
     start: tuple[float, float],
     goal_lanelet_id: int,
     goal: tuple[float, float],
+    goal_time_steps: tuple[float, float] | None = None,
+    goal_velocity_mps: tuple[float, float] | None = None,
+    dt: float = 0.1,
 ) -> SimpleNamespace:
+    goal_state = SimpleNamespace(position=SimpleNamespace(center=np.asarray(goal, dtype=float)))
+    if goal_time_steps is not None:
+        goal_state.time_step = SimpleNamespace(start=goal_time_steps[0], end=goal_time_steps[1])
+    if goal_velocity_mps is not None:
+        goal_state.velocity = SimpleNamespace(
+            start=goal_velocity_mps[0],
+            end=goal_velocity_mps[1],
+        )
     return SimpleNamespace(
+        dt=dt,
         lanelet_network=network,
         initial_state=SimpleNamespace(position=np.asarray(start, dtype=float), orientation=0.0),
         goal_region=SimpleNamespace(
             lanelets_of_goal_position={0: [goal_lanelet_id]},
-            state_list=[
-                SimpleNamespace(position=SimpleNamespace(center=np.asarray(goal, dtype=float)))
-            ],
+            state_list=[goal_state],
         ),
     )

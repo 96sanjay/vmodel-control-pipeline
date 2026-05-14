@@ -85,14 +85,14 @@ over PID/LQR but pays more solver overhead through CVXPY/OSQP in this local impl
 
 A seven-scenario real XML suite is defined in `configs/commonroad/real_scenario_suite.yaml`.
 With `commonroad-io==2024.3` and `commonroad-drivability-checker==2025.4.0`, the MIL runner now
-uses lanelet/goal-derived references and activates CommonRoad-DC checks. The current full
+uses progress-based lanelet/goal references and activates CommonRoad-DC checks. The current full
 seven-scenario run is summarized in
 `docs/reports/commonroad_drivability_report.md`.
 
 The result is intentionally not polished: 0 of 7 scenarios passed. The checks found real
 road-boundary violations, collision flags, kinematic violations, and fallback activations. This is
-useful because it exposes the next missing engineering layer: the controller needs stronger route
-progress tracking, dynamic-obstacle reasoning, and obstacle-aware behavior.
+useful because it exposes the next missing engineering layer: the controller now has better route
+progress tracking, but it still needs dynamic-obstacle reasoning and obstacle-aware behavior.
 
 ## SIL Evidence
 

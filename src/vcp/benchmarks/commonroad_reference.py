@@ -1,4 +1,4 @@
-"""Lanelet-based reference extraction for CommonRoad scenarios."""
+"""Lanelet-based reference extraction and progress tracking for CommonRoad scenarios."""
 
 from __future__ import annotations
 
@@ -15,16 +15,23 @@ class ReferencePathSample:
     py: float
     heading: float
     speed: float
+    progress_m: float
+    remaining_distance_m: float
 
 
 @dataclass(frozen=True)
 class CommonRoadReferencePath:
     points: tuple[tuple[float, float], ...]
+    arc_lengths_m: tuple[float, ...]
     speed: float
+    goal_speed: float
+    route_length_m: float
+    goal_time_s: float | None
     source: str
     start_lanelet_id: int | None
     goal_lanelet_ids: tuple[int, ...]
     notes: tuple[str, ...] = ()
+    lookahead_time_s: float = 0.35
 
 
 def build_commonroad_reference_path(
@@ -32,7 +39,8 @@ def build_commonroad_reference_path(
     *,
     default_speed: float,
 ) -> CommonRoadReferencePath:
-    """Build a simple drivable reference from CommonRoad lanelets and goals."""
+    """Build a drivable route reference from lanelets, goals, and simple timing hints."""
+
     lanelet_network = scenario_data.lanelet_network
     initial_position = np.asarray(scenario_data.initial_state.position, dtype=float)
     goal_centers = _goal_centers(scenario_data.goal_region)
@@ -56,10 +64,11 @@ def build_commonroad_reference_path(
         )
         return _as_reference_path(
             fallback,
-            default_speed,
-            None,
-            goal_ids,
-            ("No start lanelet found; using initial heading fallback.",),
+            scenario_data=scenario_data,
+            default_speed=default_speed,
+            start_lanelet_id=None,
+            goal_lanelet_ids=goal_ids,
+            notes=("No start lanelet found; using initial heading fallback.",),
         )
 
     start_id = int(start_ids[0])
@@ -74,32 +83,49 @@ def build_commonroad_reference_path(
         initial_position=initial_position,
         goal_center=goal_centers[0] if goal_centers else None,
     )
-    return _as_reference_path(points, default_speed, start_id, goal_ids, tuple(notes))
+    return _as_reference_path(
+        points,
+        scenario_data=scenario_data,
+        default_speed=default_speed,
+        start_lanelet_id=start_id,
+        goal_lanelet_ids=goal_ids,
+        notes=tuple(notes),
+    )
 
 
 def sample_reference_path_at_time(
     reference_path: CommonRoadReferencePath,
     time_s: float,
 ) -> ReferencePathSample:
+    progress_m = max(float(time_s), 0.0) * max(reference_path.speed, 0.0)
+    return sample_reference_path_at_progress(reference_path, progress_m)
+
+
+def sample_reference_path_at_progress(
+    reference_path: CommonRoadReferencePath,
+    progress_m: float,
+) -> ReferencePathSample:
     points = np.asarray(reference_path.points, dtype=float)
+    arc_lengths = np.asarray(reference_path.arc_lengths_m, dtype=float)
+    route_length = float(reference_path.route_length_m)
+    clamped_progress = min(max(float(progress_m), 0.0), route_length)
+
     if len(points) == 1:
         return ReferencePathSample(
             px=float(points[0, 0]),
             py=float(points[0, 1]),
             heading=0.0,
-            speed=reference_path.speed,
+            speed=_speed_at_progress(reference_path, clamped_progress),
+            progress_m=clamped_progress,
+            remaining_distance_m=max(route_length - clamped_progress, 0.0),
         )
 
-    deltas = np.diff(points, axis=0)
-    segment_lengths = np.linalg.norm(deltas, axis=1)
-    cumulative = np.concatenate([[0.0], np.cumsum(segment_lengths)])
-    distance = max(float(time_s), 0.0) * max(reference_path.speed, 0.0)
-    distance = min(distance, float(cumulative[-1]))
-
-    segment_index = int(np.searchsorted(cumulative, distance, side="right") - 1)
-    segment_index = min(max(segment_index, 0), len(segment_lengths) - 1)
-    length = max(float(segment_lengths[segment_index]), 1e-9)
-    ratio = (distance - float(cumulative[segment_index])) / length
+    segment_index = int(np.searchsorted(arc_lengths, clamped_progress, side="right") - 1)
+    segment_index = min(max(segment_index, 0), len(points) - 2)
+    segment_start = arc_lengths[segment_index]
+    segment_end = arc_lengths[segment_index + 1]
+    segment_length = max(float(segment_end - segment_start), 1e-9)
+    ratio = (clamped_progress - float(segment_start)) / segment_length
     point = points[segment_index] + ratio * (points[segment_index + 1] - points[segment_index])
     direction = points[segment_index + 1] - points[segment_index]
     heading = float(np.arctan2(direction[1], direction[0]))
@@ -107,13 +133,85 @@ def sample_reference_path_at_time(
         px=float(point[0]),
         py=float(point[1]),
         heading=heading,
-        speed=reference_path.speed,
+        speed=_speed_at_progress(reference_path, clamped_progress),
+        progress_m=clamped_progress,
+        remaining_distance_m=max(route_length - clamped_progress, 0.0),
     )
+
+
+def project_reference_path_progress(
+    reference_path: CommonRoadReferencePath,
+    position: np.ndarray,
+) -> float:
+    points = np.asarray(reference_path.points, dtype=float)
+    arc_lengths = np.asarray(reference_path.arc_lengths_m, dtype=float)
+    if len(points) <= 1:
+        return 0.0
+
+    best_distance = float("inf")
+    best_progress = 0.0
+    for index in range(len(points) - 1):
+        start = points[index]
+        end = points[index + 1]
+        delta = end - start
+        length_sq = float(np.dot(delta, delta))
+        if length_sq <= 1e-12:
+            continue
+        ratio = float(np.dot(position - start, delta) / length_sq)
+        ratio = min(max(ratio, 0.0), 1.0)
+        projection = start + ratio * delta
+        distance = float(np.linalg.norm(position - projection))
+        if distance < best_distance:
+            best_distance = distance
+            segment_length = float(arc_lengths[index + 1] - arc_lengths[index])
+            best_progress = float(arc_lengths[index] + ratio * segment_length)
+    return best_progress
+
+
+def sample_reference_path_for_state(
+    reference_path: CommonRoadReferencePath,
+    *,
+    position: np.ndarray,
+    current_speed: float,
+) -> ReferencePathSample:
+    base_progress = project_reference_path_progress(
+        reference_path,
+        np.asarray(position, dtype=float),
+    )
+    base_sample = sample_reference_path_at_progress(reference_path, base_progress)
+    lookahead_distance = (
+        max(base_sample.speed, float(current_speed), 1.0) * reference_path.lookahead_time_s
+    )
+    return sample_reference_path_at_progress(reference_path, base_progress + lookahead_distance)
+
+
+def build_reference_horizon_from_state(
+    reference_path: CommonRoadReferencePath,
+    *,
+    position: np.ndarray,
+    current_speed: float,
+    dt: float,
+    horizon: int,
+) -> np.ndarray:
+    reference = np.zeros((4, horizon + 1), dtype=np.float64)
+    progress_m = project_reference_path_progress(reference_path, np.asarray(position, dtype=float))
+    sample = sample_reference_path_at_progress(reference_path, progress_m)
+    for step in range(horizon + 1):
+        if step > 0:
+            progress_m += max(sample.speed, float(current_speed), 0.5) * dt
+            sample = sample_reference_path_at_progress(reference_path, progress_m)
+        reference[:, step] = np.array(
+            [sample.px, sample.py, sample.heading, sample.speed],
+            dtype=np.float64,
+        )
+    return reference
 
 
 def _as_reference_path(
     points: np.ndarray,
-    speed: float,
+    *,
+    scenario_data: Any,
+    default_speed: float,
     start_lanelet_id: int | None,
     goal_lanelet_ids: list[int],
     notes: tuple[str, ...],
@@ -121,14 +219,97 @@ def _as_reference_path(
     cleaned = _deduplicate(np.asarray(points, dtype=float))
     if len(cleaned) == 0:
         cleaned = np.zeros((1, 2), dtype=float)
+    arc_lengths = _arc_lengths(cleaned)
+    route_length_m = float(arc_lengths[-1]) if len(arc_lengths) else 0.0
+    goal_speed = _goal_speed_mps(scenario_data.goal_region)
+    goal_time_s = _goal_time_s(scenario_data.goal_region, float(getattr(scenario_data, "dt", 0.1)))
+    nominal_speed = _infer_reference_speed(
+        route_length_m=route_length_m,
+        default_speed=default_speed,
+        goal_speed=goal_speed,
+        goal_time_s=goal_time_s,
+    )
+    terminal_speed = min(goal_speed if goal_speed is not None else nominal_speed, nominal_speed)
     return CommonRoadReferencePath(
         points=tuple((float(x), float(y)) for x, y in cleaned),
-        speed=max(float(speed), 0.0),
+        arc_lengths_m=tuple(float(value) for value in arc_lengths),
+        speed=nominal_speed,
+        goal_speed=max(float(terminal_speed), 0.5),
+        route_length_m=route_length_m,
+        goal_time_s=goal_time_s,
         source="commonroad_lanelet_reference",
         start_lanelet_id=start_lanelet_id,
         goal_lanelet_ids=tuple(goal_lanelet_ids),
         notes=notes,
     )
+
+
+def _goal_speed_mps(goal_region: Any) -> float | None:
+    speeds: list[float] = []
+    for goal_state in getattr(goal_region, "state_list", []) or []:
+        midpoint = _interval_midpoint(getattr(goal_state, "velocity", None))
+        if midpoint is not None and midpoint > 0.0:
+            speeds.append(midpoint)
+    return min(speeds) if speeds else None
+
+
+def _goal_time_s(goal_region: Any, dt: float) -> float | None:
+    durations: list[float] = []
+    for goal_state in getattr(goal_region, "state_list", []) or []:
+        midpoint = _interval_midpoint(getattr(goal_state, "time_step", None))
+        if midpoint is not None and midpoint > 0.0:
+            durations.append(midpoint * dt)
+    return min(durations) if durations else None
+
+
+def _interval_midpoint(value: Any) -> float | None:
+    if value is None:
+        return None
+    if hasattr(value, "start") and hasattr(value, "end"):
+        return 0.5 * (float(value.start) + float(value.end))
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _infer_reference_speed(
+    *,
+    route_length_m: float,
+    default_speed: float,
+    goal_speed: float | None,
+    goal_time_s: float | None,
+) -> float:
+    speed = max(float(default_speed), 0.5)
+    if goal_speed is not None and goal_speed > 0.0:
+        speed = min(speed, goal_speed)
+    if goal_time_s is not None and goal_time_s > 0.0 and route_length_m > 0.0:
+        time_speed = route_length_m / goal_time_s
+        plausible = goal_speed is None or time_speed <= max(goal_speed * 1.6, 2.0)
+        if plausible and time_speed < speed:
+            speed = max(time_speed, 0.5)
+    return speed
+
+
+def _speed_at_progress(reference_path: CommonRoadReferencePath, progress_m: float) -> float:
+    remaining = max(reference_path.route_length_m - progress_m, 0.0)
+    slowdown_distance = min(
+        reference_path.route_length_m,
+        max(8.0, 2.0 * reference_path.speed),
+    )
+    if slowdown_distance <= 1e-9 or remaining >= slowdown_distance:
+        return reference_path.speed
+    ratio = min(max(remaining / slowdown_distance, 0.0), 1.0)
+    ratio = ratio * ratio * (3.0 - 2.0 * ratio)
+    return reference_path.goal_speed + (reference_path.speed - reference_path.goal_speed) * ratio
+
+
+def _arc_lengths(points: np.ndarray) -> np.ndarray:
+    if len(points) <= 1:
+        return np.zeros((len(points),), dtype=float)
+    deltas = np.diff(points, axis=0)
+    lengths = np.linalg.norm(deltas, axis=1)
+    return np.concatenate([[0.0], np.cumsum(lengths)])
 
 
 def _lanelet_ids_at_position(lanelet_network: Any, position: np.ndarray) -> list[int]:
@@ -146,10 +327,7 @@ def _goal_lanelet_ids(goal_region: Any) -> list[int]:
     if not lanelets:
         return []
     ids: list[int] = []
-    if isinstance(lanelets, dict):
-        values = lanelets.values()
-    else:
-        values = lanelets
+    values = lanelets.values() if isinstance(lanelets, dict) else lanelets
     for value in values:
         if isinstance(value, (list, tuple, set)):
             ids.extend(int(item) for item in value)
@@ -162,9 +340,8 @@ def _goal_centers(goal_region: Any) -> list[np.ndarray]:
     centers: list[np.ndarray] = []
     for goal_state in getattr(goal_region, "state_list", []) or []:
         position = getattr(goal_state, "position", None)
-        if position is None:
-            continue
-        centers.extend(_shape_centers(position))
+        if position is not None:
+            centers.extend(_shape_centers(position))
     return centers
 
 

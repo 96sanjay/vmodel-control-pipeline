@@ -9,12 +9,16 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
 
+import numpy as np
+
 from vcp.benchmarks.commonroad_drivability import annotate_rows_with_commonroad_drivability
 from vcp.benchmarks.commonroad_loader import CommonRoadLoaderError, CommonRoadScenarioLoader
 from vcp.benchmarks.commonroad_reference import (
     CommonRoadReferencePath,
     build_commonroad_reference_path,
+    build_reference_horizon_from_state,
     sample_reference_path_at_time,
+    sample_reference_path_for_state,
 )
 from vcp.benchmarks.scenario_manifest import ScenarioManifestEntry, load_scenario_suite
 from vcp.controllers import (
@@ -234,7 +238,7 @@ class BenchmarkRunner:
 
         for step_index in range(self.config.steps):
             time_s = step_index * spec.dt
-            target = _target_at_time(spec.reference_profile, time_s)
+            target = _target_for_state(spec.reference_profile, state, time_s)
             step = self._controller_step(controller, controller_name, state, spec, time_s, target)
             lateral_error = state.py - target.lateral_position
             heading_error = normalize_angle(state.yaw - target.heading)
@@ -532,6 +536,25 @@ def _target_at_time(
     )
 
 
+def _target_for_state(
+    profile: SyntheticReferenceProfile | CommonRoadReferencePath,
+    state: VehicleState,
+    time_s: float,
+) -> PathTrackingTarget:
+    if isinstance(profile, CommonRoadReferencePath):
+        sample = sample_reference_path_for_state(
+            profile,
+            position=np.array([state.px, state.py], dtype=np.float64),
+            current_speed=state.v,
+        )
+        return PathTrackingTarget(
+            speed=sample.speed,
+            lateral_position=sample.py,
+            heading=sample.heading,
+        )
+    return _target_at_time(profile, time_s)
+
+
 def _reference_horizon(
     state: VehicleState,
     spec: MILScenarioSpec,
@@ -540,22 +563,16 @@ def _reference_horizon(
 ) -> Any:
     import numpy as np
 
-    reference = np.zeros((4, horizon + 1), dtype=np.float64)
     if isinstance(spec.reference_profile, CommonRoadReferencePath):
-        for step in range(horizon + 1):
-            target_time_s = time_s + step * spec.dt
-            sample = sample_reference_path_at_time(spec.reference_profile, target_time_s)
-            reference[:, step] = np.array(
-                [
-                    sample.px,
-                    sample.py,
-                    sample.heading,
-                    sample.speed,
-                ],
-                dtype=np.float64,
-            )
-        return reference
+        return build_reference_horizon_from_state(
+            spec.reference_profile,
+            position=np.array([state.px, state.py], dtype=np.float64),
+            current_speed=state.v,
+            dt=spec.dt,
+            horizon=horizon,
+        )
 
+    reference = np.zeros((4, horizon + 1), dtype=np.float64)
     reference_px = state.px
     previous_target = _target_at_time(spec.reference_profile, time_s)
     for step in range(horizon + 1):

@@ -206,8 +206,8 @@ python scripts/check_commonroad_scenarios.py \
   --suite configs/commonroad/real_scenario_suite.yaml
 ```
 
-When real XML files are available, the MIL runner extracts a first-pass lanelet/goal reference path
-and annotates each row with CommonRoad-specific validation evidence:
+When real XML files are available, the MIL runner extracts a progress-based lanelet/goal reference
+path and annotates each row with CommonRoad-specific validation evidence:
 
 | Field | Meaning |
 |---|---|
@@ -228,7 +228,7 @@ python -m vcp.validation.run_mil \
   --controller nmpc \
   --max-scenarios 0 \
   --steps 25 \
-  --output-dir artifacts/real_commonroad_reference_mil_7
+  --output-dir artifacts/step1_progress_reference_mil_7
 ```
 
 ## Virtual CAN
