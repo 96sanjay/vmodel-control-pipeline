@@ -147,10 +147,3 @@ verification test ID, stage, and evidence artifact.
 - HIL-lite is local timing/protocol validation, not full real-time hardware HIL.
 - The energy-management transfer case is intentionally out of scope until the primary case study is
   stronger.
-
-## CV-Ready Summary
-
-Built a V-model-inspired validation pipeline for optimization-based control algorithms with
-requirements traceability, PID/LQR/Kalman baselines, MPC/NMPC controllers, MIL benchmarking,
-SIL-style equivalence tests, HIL-lite timing validation, CommonRoad-specific validation hooks,
-industrial-style signal logging, virtual CAN replay, and portfolio-grade reports.

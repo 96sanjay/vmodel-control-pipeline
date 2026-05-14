@@ -6,7 +6,7 @@ metadata:
   status: draft
   scope: >
     V-model-inspired requirements for the primary CommonRoad NMPC motion-control case study.
-    These requirements are intended for engineering traceability and portfolio evidence only.
+    These requirements are intended for engineering traceability and validation evidence only.
   safety_note: >
     This project uses ISO 26262-inspired terminology and structure. It does not claim ISO 26262,
     Automotive SPICE, ASAM, or FMI compliance.
@@ -164,7 +164,7 @@ requirements:
     statement: >
       A developer shall be able to run the smoke test suite from a fresh checkout using documented
       environment and Docker instructions.
-    rationale: Reproducibility is necessary for credible benchmark results and portfolio review.
+    rationale: Reproducibility is necessary for credible benchmark results and technical review.
     verification: TC-CI-001
     acceptance_criteria:
       - pytest passes in the local conda environment

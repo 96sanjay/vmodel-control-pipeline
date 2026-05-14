@@ -4,7 +4,7 @@
 
 This document defines the V-model-inspired validation plan for the CommonRoad motion-control case
 study. The goal is to preserve a clear digital thread from requirements to implementation, tests,
-logs, reports, and portfolio evidence.
+logs, reports, and validation evidence.
 
 This project uses industry-inspired practices. It does not claim ISO 26262, Automotive SPICE, ASAM,
 FMI, dSPACE, Speedgoat, or MathWorks compliance.

@@ -14,9 +14,9 @@ Requirements -> modeling -> PID/LQR/Kalman baselines -> MPC/NMPC
 
 ## Why This Project Exists
 
-Control employers care about more than "I made a controller work once." They want evidence that a
-control algorithm can be packaged, tested, compared against baselines, monitored for timing and
-fallback behavior, and explained through reproducible artifacts.
+Control validation requires more than demonstrating that a controller works once. The goal here is
+to show that a control algorithm can be packaged, tested, compared against baselines, monitored for
+timing and fallback behavior, and explained through reproducible artifacts.
 
 This project currently demonstrates that workflow for a road-motion control problem. The
 CityLearn/OpenDSS energy-management case study is intentionally deferred until the CommonRoad path

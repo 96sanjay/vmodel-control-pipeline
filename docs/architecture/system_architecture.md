@@ -110,6 +110,6 @@ controller configuration, sample time, random seed, software version, and artifa
 | --- | --- |
 | Start with kinematic bicycle dynamics | Keeps the first control problem understandable and testable |
 | Keep CommonRoad outside core models | Prevents benchmark-specific assumptions from contaminating reusable code |
-| Use explicit requirement and test IDs | Creates a traceable digital thread for reports and CV evidence |
+| Use explicit requirement and test IDs | Creates a traceable digital thread for verification evidence |
 | Use HIL-lite wording | Avoids overstating hardware validation without dSPACE or Speedgoat access |
 | Add CityLearn/OpenDSS later | Protects the primary case study from scope collapse |
