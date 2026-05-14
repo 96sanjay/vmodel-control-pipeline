@@ -90,15 +90,16 @@ CommonRoad-DC checks. The current full seven-scenario run is summarized in
 `docs/reports/commonroad_drivability_report.md`.
 
 The result is intentionally not polished: 0 of 7 scenarios passed. The checks found real
-road-boundary violations, collision flags, kinematic violations, and fallback activations. This is
-useful because it exposes the next missing engineering layer: the controller now has route progress
-tracking and a conservative obstacle stop layer, but it still needs better success logic and better
-tuning around those obstacle signals.
+road-boundary violations, collision flags, kinematic violations, and fallback activations. After
+the latest tuning pass, the run improved to a `0.4286` drivable rate, `3` blocked scenarios, and
+`2` total collisions. This is useful because it exposes the next missing engineering layer: the
+controller now has route progress tracking, obstacle-risk gating, and better result
+classification, but it still needs obstacle-aware optimization rather than fallback-only behavior.
 
 The latest KPI layer also separates `blocked` behavior from general failure. In the current
-seven-scenario run, `USA_Lanker-2_1_T-1` is drivable and stable but blocked short of the goal by
-the conservative obstacle layer, which is more informative than labeling it the same way as a
-collision case.
+seven-scenario run, `USA_US101-1_1_T-1`, `USA_US101-13_1_T-1`, and `USA_Lanker-2_1_T-1` are
+classified as `blocked` rather than general failure, which is more informative than labeling them
+the same way as a collision case.
 
 ## SIL Evidence
 

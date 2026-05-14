@@ -227,6 +227,12 @@ Scenario-level KPI outputs now include richer classification fields such as `res
 `drivable`, `stable_execution`, `blocked_by_obstacle`, and `safe_stop` so conservative behavior is
 not automatically lumped together with collisions or lane departures.
 
+With the current tuned defaults, the real seven-scenario NMPC run reaches:
+
+- `drivable_rate = 0.4286`
+- `blocked_by_obstacle_count = 3`
+- `collision_count = 2`
+
 Run the seven-scenario real XML smoke benchmark locally:
 
 ```bash

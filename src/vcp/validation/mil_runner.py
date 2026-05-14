@@ -66,15 +66,15 @@ class MILRunnerConfig:
     target_speed: float = 4.0
     road_boundary_limit_m: float = 3.5
     max_solve_time_ms: float = 95.0
-    nmpc_horizon: int = 5
+    nmpc_horizon: int = 12
     linear_mpc_horizon: int = 8
     obstacle_nearby_radius_m: float = 45.0
-    obstacle_route_lookahead_m: float = 20.0
-    obstacle_time_headway_s: float = 2.0
-    obstacle_ttc_threshold_s: float = 1.5
-    obstacle_minimum_closing_speed_mps: float = 0.5
+    obstacle_route_lookahead_m: float = 18.0
+    obstacle_time_headway_s: float = 1.5
+    obstacle_ttc_threshold_s: float = 1.2
+    obstacle_minimum_closing_speed_mps: float = 1.0
     obstacle_route_lateral_margin_m: float = 0.75
-    obstacle_emergency_distance_m: float = 8.0
+    obstacle_emergency_distance_m: float = 7.0
 
     def __post_init__(self) -> None:
         if self.steps <= 0:
