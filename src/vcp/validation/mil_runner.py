@@ -9,6 +9,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
 
+from vcp.benchmarks.commonroad_drivability import annotate_rows_with_commonroad_drivability
 from vcp.benchmarks.commonroad_loader import CommonRoadLoaderError, CommonRoadScenarioLoader
 from vcp.benchmarks.scenario_manifest import ScenarioManifestEntry, load_scenario_suite
 from vcp.controllers import (
@@ -78,6 +79,7 @@ class MILScenarioSpec:
     reference_profile: SyntheticReferenceProfile
     source: ScenarioSource
     note: str
+    scenario_data: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -163,6 +165,7 @@ class BenchmarkRunner:
                 reference_profile=profile,
                 source="synthetic_smoke_from_manifest",
                 note=str(exc).splitlines()[0],
+                scenario_data=None,
             )
 
         initial_state = _state_from_commonroad_initial_state(scenario_data.initial_state)
@@ -188,6 +191,7 @@ class BenchmarkRunner:
             reference_profile=profile,
             source="commonroad_initial_state",
             note="CommonRoad XML loaded; current MIL runner uses initial state only.",
+            scenario_data=scenario_data,
         )
 
     def _run_controller(self, spec: MILScenarioSpec, controller_name: str) -> list[dict[str, Any]]:
@@ -247,6 +251,9 @@ class BenchmarkRunner:
                 )
             )
             state = plant.step(state, applied_command, spec.dt)
+
+        if spec.scenario_data is not None:
+            annotate_rows_with_commonroad_drivability(spec.scenario_data, rows)
 
         return rows
 

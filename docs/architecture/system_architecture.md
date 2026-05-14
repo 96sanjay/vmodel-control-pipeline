@@ -26,19 +26,19 @@ flowchart LR
     G --> I
     H --> I
     I --> J[Traceability matrix]
-    I --> K[CSV logs and optional MDF/MF4 export]
+    I --> K[CSV logs optional MDF/MF4 virtual CAN]
 ```
 
 ## Package Boundaries
 
 | Package Area | Responsibility |
 | --- | --- |
-| `vcp.benchmarks` | Scenario ingestion, manifests, and benchmark adapters |
+| `vcp.benchmarks` | Scenario ingestion, manifests, CommonRoad lanelet/drivability adapters |
 | `vcp.models` | Domain-independent plant models, states, inputs, and constraints |
 | `vcp.controllers` | PID, LQR, MPC, NMPC, and fallback controllers |
 | `vcp.estimators` | Kalman, EKF, residual metrics, and estimator diagnostics |
 | `vcp.validation` | MIL/SIL/HIL-lite runners, KPIs, interfaces, and safety supervision |
-| `vcp.logging` | Signal dictionaries, CSV logs, optional MDF/MF4 export, calibration files, and run metadata |
+| `vcp.logging` | Signal dictionaries, CSV logs, optional MDF/MF4 export, calibration files, virtual CAN, and run metadata |
 | `vcp.utils` | Shared configuration and filesystem helpers |
 
 ## Controller Validation Interfaces
@@ -101,6 +101,8 @@ controller configuration, sample time, random seed, software version, and artifa
 | HIL-lite validation | `src/vcp/hil/` | Phase 12 |
 | Industrial logging | `src/vcp/logging/` | Phase 13 |
 | Final reports | `docs/reports/` | Phase 14 |
+| CommonRoad checks | `src/vcp/benchmarks/commonroad_drivability.py` | Post-Phase 14 hardening |
+| Virtual CAN | `src/vcp/logging/virtual_can.py` | Post-Phase 14 hardening |
 
 ## Architecture Decisions
 

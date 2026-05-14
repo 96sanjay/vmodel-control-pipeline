@@ -4,8 +4,11 @@
 
 This report summarizes the Phase 14 Model-in-the-Loop smoke validation run. Controllers are tested
 against the current CommonRoad scenario manifest. Because raw CommonRoad XML files are not included
-in the repository, the runner used synthetic smoke references derived from the manifest and labeled
-the source accordingly.
+in the repository, the measured table below used synthetic smoke references derived from the
+manifest and labeled the source accordingly.
+
+The runner now annotates real CommonRoad XML runs with lanelet membership, kinematic checks, and
+optional CommonRoad-DC collision/boundary checks when those dependencies are installed.
 
 ## Run Command
 
@@ -60,6 +63,6 @@ success criterion while NMPC passes.
 
 ## Limitations
 
-The collision counts are not full CommonRoad obstacle-validation evidence yet. They are placeholders
-within the smoke KPI structure until the closed-loop runner integrates real CommonRoad obstacle and
-drivability checks.
+The collision counts in the table are smoke KPI values, not full benchmark evidence. Full obstacle
+and road-boundary validation requires locally downloaded CommonRoad XML scenarios and optional
+CommonRoad-DC tooling.

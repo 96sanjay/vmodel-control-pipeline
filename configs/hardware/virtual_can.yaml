@@ -1,0 +1,17 @@
+interface:
+  type: virtual
+  linux_backend: socketcan
+  channel: vcan0
+  bitrate: 500000
+  note: >
+    This is a virtual CAN configuration for local replay and interface testing. It does not claim
+    real vehicle bus validation.
+
+dbc:
+  path: configs/hardware/vcp_controller.dbc
+  controller_status_message: VCP_ControllerStatus
+  controller_status_frame_id: 0x120
+
+replay:
+  default_input_log: artifacts/example/controller_signals.csv
+  default_output_jsonl: artifacts/virtual_can/controller_status_frames.jsonl

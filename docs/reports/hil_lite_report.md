@@ -44,3 +44,15 @@ The delayed request creates a missed deadline, which is counted in the evidence 
 
 This validates local protocol and timing behavior only. It does not include real-time kernel
 scheduling, ECU I/O, XCP/CCP measurement, CAN rest-bus simulation, or certified HIL automation.
+
+## Related Virtual CAN Interface
+
+Post-Phase 14 hardening added a virtual CAN replay path for controller status frames:
+
+```bash
+python scripts/replay_signal_log_to_virtual_can.py \
+  artifacts/example/controller_signals.csv \
+  --output artifacts/virtual_can/controller_status_frames.jsonl
+```
+
+This supports interface testing before any SocketCAN or hardware bus setup is introduced.

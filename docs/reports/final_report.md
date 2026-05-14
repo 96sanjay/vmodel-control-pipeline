@@ -27,7 +27,8 @@ compliance with those standards.
 | MIL | Controller benchmark runner, KPIs, JSON/CSV/SVG/Markdown artifacts |
 | SIL | Stable controller interface and back-to-back equivalence reports |
 | HIL-lite | UDP-style protocol, controller server/client, deterministic timing loop, fault injection |
-| Logging | Signal dictionary, CSV signal logs, JSON metadata, optional MF4 export hook |
+| CommonRoad checks | Lanelet membership, kinematic checks, optional CommonRoad-DC collision/boundary checks |
+| Logging and CAN | Signal dictionary, CSV logs, JSON metadata, optional MF4 export, virtual CAN/DBC replay |
 
 ## Architecture
 
@@ -62,9 +63,11 @@ python -m vcp.validation.run_mil \
   --output-dir artifacts/phase14_mil_all
 ```
 
-The current repository does not include raw CommonRoad XML scenarios, so these are synthetic smoke
-references derived from the scenario manifest. They are useful for controller regression and
-portfolio demonstration, but they are not full CommonRoad benchmark results.
+The current repository does not include raw CommonRoad XML scenarios, so these measured results are
+synthetic smoke references derived from the scenario manifest. The code path now supports
+CommonRoad-specific lanelet, kinematic, collision, and boundary annotations when real XML files and
+optional CommonRoad-DC tooling are installed, but the table below is still not a full CommonRoad
+benchmark result.
 
 | Controller | Success rate | Collision count | Road-boundary violations | Mean lateral RMSE | Mean speed RMSE | Max p95 solve time | Fallback count |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -108,6 +111,20 @@ fault injection:
 This is useful evidence for interface and fallback behavior. It does not replace dSPACE,
 Speedgoat, real ECU I/O, or calibrated CAN/XCP test benches.
 
+## Virtual CAN Evidence
+
+The project includes a dependency-light virtual CAN representation plus a DBC file for controller
+status replay:
+
+| Artifact | Purpose |
+|---|---|
+| `configs/hardware/vcp_controller.dbc` | Defines the `VCP_ControllerStatus` frame |
+| `configs/hardware/virtual_can.yaml` | Documents virtual `vcan0` replay configuration |
+| `scripts/replay_signal_log_to_virtual_can.py` | Converts CSV signal logs to JSONL CAN frames |
+| `tests/unit/test_virtual_can.py` | Verifies deterministic frame encoding and optional DBC loading |
+
+This is an interface and packaging step, not a claim of real in-vehicle CAN validation.
+
 ## Traceability
 
 The digital thread is maintained through:
@@ -122,8 +139,8 @@ verification test ID, stage, and evidence artifact.
 
 ## Limitations
 
-- Full CommonRoad XML closed-loop validation is not complete in this repository snapshot.
-- Obstacle collision checking is not yet connected to the CommonRoad drivability checker.
+- Full CommonRoad XML closed-loop benchmark evidence requires downloaded scenario files.
+- CommonRoad-DC obstacle and boundary checking is optional and only runs when the external package is installed.
 - NMPC currently uses a local CasADi/IPOPT path; acados code generation is future work.
 - SIL is interface/back-to-back validation, not compiled generated-code validation yet.
 - HIL-lite is local timing/protocol validation, not full real-time hardware HIL.
@@ -134,5 +151,5 @@ verification test ID, stage, and evidence artifact.
 
 Built a V-model-inspired validation pipeline for optimization-based control algorithms with
 requirements traceability, PID/LQR/Kalman baselines, MPC/NMPC controllers, MIL benchmarking,
-SIL-style equivalence tests, HIL-lite timing validation, industrial-style signal logging, and
-portfolio-grade reports.
+SIL-style equivalence tests, HIL-lite timing validation, CommonRoad-specific validation hooks,
+industrial-style signal logging, virtual CAN replay, and portfolio-grade reports.

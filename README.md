@@ -52,7 +52,7 @@ Important boundaries:
 | Estimators | `src/vcp/estimators/` | Linear Kalman filter and EKF |
 | Validation | `src/vcp/validation/` | MIL runner, SIL equivalence, KPIs, safety supervisor |
 | HIL-lite | `src/vcp/hil/` | UDP-style protocol, controller server, timing loop |
-| Logging | `src/vcp/logging/` | Signal dictionary, CSV logs, optional MF4, calibration loading |
+| Logging and CAN | `src/vcp/logging/` | Signal dictionary, CSV logs, optional MF4, calibration, virtual CAN |
 
 ## Toolchain
 
@@ -78,6 +78,15 @@ pip install -e ".[logging]"
 MF4 export is supported when `asammdf` is installed. CSV remains the default so the project stays
 portable in CI and local development.
 
+Optional CommonRoad drivability dependencies:
+
+```bash
+pip install -e ".[commonroad,commonroad-drivability]"
+```
+
+The project uses these optional packages only when real CommonRoad XML scenarios and the
+CommonRoad-DC tooling are available.
+
 ## Algorithms Implemented
 
 | Algorithm | Status | Role |
@@ -98,7 +107,8 @@ portable in CI and local development.
 | MIL | Controller comparison on synthetic smoke references derived from the CommonRoad manifest |
 | SIL | Back-to-back equivalence through stable controller adapters |
 | HIL-lite | In-process/UDP-style loop with latency, timeout, missed-deadline, and fallback logging |
-| Logging | Signal dictionary, CSV logs, JSON metadata, optional MF4 export hook |
+| CommonRoad checks | Lanelet membership, kinematic checks, and optional CommonRoad-DC collision/boundary checks |
+| Logging | Signal dictionary, CSV logs, JSON metadata, optional MF4 export hook, virtual CAN frames |
 
 The wording is deliberate: this is **V-model-inspired**, **ISO 26262-inspired**, and
 **HIL-lite**. It is not a certified safety project and does not claim full dSPACE/Speedgoat HIL.
@@ -177,6 +187,37 @@ If raw XML files are missing, the MIL runner falls back to synthetic smoke scena
 the manifest and labels the results accordingly. That keeps CI lightweight while avoiding false
 claims about full benchmark coverage.
 
+When real XML files are available, the MIL runner annotates each row with CommonRoad-specific
+validation evidence:
+
+| Field | Meaning |
+|---|---|
+| `commonroad_lanelet_checked` | Lanelet-network membership check was available |
+| `commonroad_dc_checked` | CommonRoad-DC collision or boundary checker was available |
+| `commonroad_kinematic_violation` | Vehicle state or applied command violated configured limits |
+| `commonroad_check_notes` | Notes explaining skipped optional checks or checker failures |
+
+## Virtual CAN
+
+The project includes a small virtual CAN interface for replaying controller signal logs into
+deterministic CAN-style frames:
+
+```text
+configs/hardware/virtual_can.yaml
+configs/hardware/vcp_controller.dbc
+```
+
+Replay a CSV signal log to JSONL CAN frames:
+
+```bash
+python scripts/replay_signal_log_to_virtual_can.py \
+  artifacts/example/controller_signals.csv \
+  --output artifacts/virtual_can/controller_status_frames.jsonl
+```
+
+This is a local interface test, not real vehicle-bus validation. `cantools` and `python-can` are
+optional and only needed for DBC parsing or conversion to `python-can` messages.
+
 ## Main Reports
 
 - [Final report](docs/reports/final_report.md)
@@ -189,9 +230,9 @@ claims about full benchmark coverage.
 
 ## Limitations
 
-- Current MIL results are smoke validation, not complete CommonRoad benchmark certification.
-- Collision count is logged, but real obstacle collision checking is not complete until the
-  CommonRoad drivability checker is integrated into the closed-loop runner.
+- Current MIL results are smoke validation unless real CommonRoad XML files are downloaded locally.
+- CommonRoad-DC collision and boundary checks are integrated as optional hooks, but the repository
+  does not vendor scenario files or claim complete CommonRoad benchmark coverage.
 - The NMPC backend currently uses CasADi/IPOPT locally; native acados C code generation is a future
   integration point.
 - SIL currently validates stable controller interfaces and Python back-to-back equivalence; compiled
@@ -205,6 +246,6 @@ claims about full benchmark coverage.
 - Integrate real CommonRoad XML scenarios into full closed-loop path and obstacle validation.
 - Add CommonRoad drivability-checker collision, feasibility, and road-compliance assessments.
 - Generate or package an acados C controller for stronger SIL evidence.
-- Add virtual CAN/DBC examples with `python-can` and `cantools`.
+- Extend virtual CAN into SocketCAN `vcan0` replay with `python-can`.
 - Add the CityLearn/OpenDSS energy-management transfer case after the road-motion workflow is
   stronger.
