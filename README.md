@@ -223,6 +223,10 @@ evidence:
 | `commonroad_kinematic_violation` | Vehicle state or applied command violated configured limits |
 | `commonroad_check_notes` | Notes explaining skipped optional checks or checker failures |
 
+Scenario-level KPI outputs now include richer classification fields such as `result_class`,
+`drivable`, `stable_execution`, `blocked_by_obstacle`, and `safe_stop` so conservative behavior is
+not automatically lumped together with collisions or lane departures.
+
 Run the seven-scenario real XML smoke benchmark locally:
 
 ```bash

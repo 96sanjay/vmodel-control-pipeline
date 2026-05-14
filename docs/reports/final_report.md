@@ -95,6 +95,11 @@ useful because it exposes the next missing engineering layer: the controller now
 tracking and a conservative obstacle stop layer, but it still needs better success logic and better
 tuning around those obstacle signals.
 
+The latest KPI layer also separates `blocked` behavior from general failure. In the current
+seven-scenario run, `USA_Lanker-2_1_T-1` is drivable and stable but blocked short of the goal by
+the conservative obstacle layer, which is more informative than labeling it the same way as a
+collision case.
+
 ## SIL Evidence
 
 The current SIL stage validates the controller interface and back-to-back equivalence using Python

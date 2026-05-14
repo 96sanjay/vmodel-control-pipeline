@@ -41,6 +41,8 @@ python -m vcp.validation.run_mil \
 |---|---:|
 | Run count | 7 |
 | Success rate | 0.0000 |
+| Drivable rate | 0.1429 |
+| Blocked-by-obstacle count | 1 |
 | Collision count | 6 |
 | Road-boundary violation count | 44 |
 | Constraint violation count | 68 |
@@ -66,9 +68,11 @@ python -m vcp.validation.run_mil \
 The pipeline now performs real CommonRoad XML loading, projects the ego state onto a lanelet/goal
 route reference, builds the NMPC horizon from route progress instead of wall-clock time, adds a
 nearby-obstacle assessment with TTC-based safety-stop gating, and activates CommonRoad-DC checks.
-The row artifacts report `scenario_source=commonroad_reference_path`,
-`commonroad_dc_checked=True`, `commonroad_lanelet_checked=True`, `obstacle_risk_flag`,
-`nearby_obstacle_count`, and `blocking_obstacle_count`.
+The KPI layer now distinguishes `success`, `blocked`, `safe_stop`, and `failure` rather than
+treating every non-success case the same. The row artifacts report
+`scenario_source=commonroad_reference_path`, `commonroad_dc_checked=True`,
+`commonroad_lanelet_checked=True`, `obstacle_risk_flag`, `nearby_obstacle_count`, and
+`blocking_obstacle_count`.
 
 This step adds real traffic-awareness plumbing, but it is still a blunt safety layer. The current
 thresholds trade tracking quality for conservative fallback behavior, and they do not yet solve the
