@@ -11,6 +11,11 @@ from typing import Any, Literal
 
 from vcp.benchmarks.commonroad_drivability import annotate_rows_with_commonroad_drivability
 from vcp.benchmarks.commonroad_loader import CommonRoadLoaderError, CommonRoadScenarioLoader
+from vcp.benchmarks.commonroad_reference import (
+    CommonRoadReferencePath,
+    build_commonroad_reference_path,
+    sample_reference_path_at_time,
+)
 from vcp.benchmarks.scenario_manifest import ScenarioManifestEntry, load_scenario_suite
 from vcp.controllers import (
     CasadiNMPCController,
@@ -32,7 +37,11 @@ from vcp.validation.safety_supervisor import (
 )
 
 ControllerName = Literal["pid", "lqr", "linear_mpc", "nmpc", "all"]
-ScenarioSource = Literal["commonroad_initial_state", "synthetic_smoke_from_manifest"]
+ScenarioSource = Literal[
+    "commonroad_reference_path",
+    "commonroad_initial_state",
+    "synthetic_smoke_from_manifest",
+]
 
 
 @dataclass(frozen=True)
@@ -76,7 +85,7 @@ class MILScenarioSpec:
     dt: float
     initial_state: VehicleState
     target: PathTrackingTarget
-    reference_profile: SyntheticReferenceProfile
+    reference_profile: SyntheticReferenceProfile | CommonRoadReferencePath
     source: ScenarioSource
     note: str
     scenario_data: Any | None = None
@@ -169,18 +178,34 @@ class BenchmarkRunner:
             )
 
         initial_state = _state_from_commonroad_initial_state(scenario_data.initial_state)
-        target = PathTrackingTarget(
-            speed=max(initial_state.v, self.config.target_speed),
-            lateral_position=initial_state.py,
-            heading=initial_state.yaw,
-        )
-        profile = SyntheticReferenceProfile(
-            profile_name="commonroad_initial_state_hold",
-            base_speed=target.speed,
-            initial_lateral_position=target.lateral_position,
-            final_lateral_position=target.lateral_position,
-            heading_final=target.heading,
-        )
+        try:
+            profile: SyntheticReferenceProfile | CommonRoadReferencePath = (
+                build_commonroad_reference_path(
+                    scenario_data,
+                    default_speed=max(initial_state.v, self.config.target_speed),
+                )
+            )
+            source: ScenarioSource = "commonroad_reference_path"
+            note = "CommonRoad XML loaded; reference path extracted from lanelet network."
+        except (AttributeError, TypeError, ValueError) as exc:
+            target = PathTrackingTarget(
+                speed=max(initial_state.v, self.config.target_speed),
+                lateral_position=initial_state.py,
+                heading=initial_state.yaw,
+            )
+            profile = SyntheticReferenceProfile(
+                profile_name="commonroad_initial_state_hold",
+                base_speed=target.speed,
+                initial_lateral_position=target.lateral_position,
+                final_lateral_position=target.lateral_position,
+                heading_final=target.heading,
+            )
+            source = "commonroad_initial_state"
+            note = (
+                "CommonRoad XML loaded, but lanelet reference extraction failed; "
+                f"using initial-state fallback: {exc}"
+            )
+        target = _target_at_time(profile, 0.0)
         return MILScenarioSpec(
             scenario_id=entry.scenario_id,
             difficulty=entry.difficulty,
@@ -189,8 +214,8 @@ class BenchmarkRunner:
             initial_state=initial_state,
             target=target,
             reference_profile=profile,
-            source="commonroad_initial_state",
-            note="CommonRoad XML loaded; current MIL runner uses initial state only.",
+            source=source,
+            note=note,
             scenario_data=scenario_data,
         )
 
@@ -471,7 +496,18 @@ def _synthetic_scenario(
     )
 
 
-def _target_at_time(profile: SyntheticReferenceProfile, time_s: float) -> PathTrackingTarget:
+def _target_at_time(
+    profile: SyntheticReferenceProfile | CommonRoadReferencePath,
+    time_s: float,
+) -> PathTrackingTarget:
+    if isinstance(profile, CommonRoadReferencePath):
+        sample = sample_reference_path_at_time(profile, time_s)
+        return PathTrackingTarget(
+            speed=sample.speed,
+            lateral_position=sample.py,
+            heading=sample.heading,
+        )
+
     progress = _smoothstep(
         (time_s - profile.maneuver_start_s) / max(profile.maneuver_duration_s, 1e-9)
     )
@@ -505,6 +541,21 @@ def _reference_horizon(
     import numpy as np
 
     reference = np.zeros((4, horizon + 1), dtype=np.float64)
+    if isinstance(spec.reference_profile, CommonRoadReferencePath):
+        for step in range(horizon + 1):
+            target_time_s = time_s + step * spec.dt
+            sample = sample_reference_path_at_time(spec.reference_profile, target_time_s)
+            reference[:, step] = np.array(
+                [
+                    sample.px,
+                    sample.py,
+                    sample.heading,
+                    sample.speed,
+                ],
+                dtype=np.float64,
+            )
+        return reference
+
     reference_px = state.px
     previous_target = _target_at_time(spec.reference_profile, time_s)
     for step in range(horizon + 1):
@@ -579,6 +630,12 @@ def _row(
     return {
         "suite_scenario_id": spec.scenario_id,
         "scenario_source": spec.source,
+        "scenario_note": spec.note,
+        "reference_profile": _reference_profile_name(spec.reference_profile),
+        "reference_start_lanelet_id": getattr(spec.reference_profile, "start_lanelet_id", ""),
+        "reference_goal_lanelet_ids": ";".join(
+            str(item) for item in getattr(spec.reference_profile, "goal_lanelet_ids", ())
+        ),
         "controller": controller_name,
         "time_s": time_s,
         "target_speed": target.speed,
@@ -606,6 +663,10 @@ def _row(
         "collision_flag": False,
         "road_boundary_violation": road_boundary_violation,
     }
+
+
+def _reference_profile_name(profile: SyntheticReferenceProfile | CommonRoadReferencePath) -> str:
+    return getattr(profile, "profile_name", getattr(profile, "source", "unknown_reference"))
 
 
 def _controller_names(controller: ControllerName) -> tuple[str, ...]:

@@ -19,7 +19,7 @@ compliance with those standards.
 | Area | Current implementation |
 |---|---|
 | Requirements | System/software requirements, hazard log, traceability matrix |
-| Benchmark adapter | CommonRoad manifest loader and graceful fallback when XML files are missing |
+| Benchmark adapter | CommonRoad manifest loader, real XML loader, lanelet reference extraction, graceful fallback when XML files are missing |
 | Vehicle model | Kinematic bicycle model with state/input definitions and constraints |
 | Controllers | PID, LQR, linear MPC, CasADi NMPC, fallback braking |
 | Estimators | Linear Kalman filter and EKF with residual metrics |
@@ -66,9 +66,9 @@ python -m vcp.validation.run_mil \
 The repository does not commit raw CommonRoad XML scenarios, so the measured Phase 14 table below
 used synthetic smoke references derived from the original smoke manifest. A separate seven-scenario
 real XML suite is now defined in `configs/commonroad/real_scenario_suite.yaml` and can be fetched
-locally with `scripts/fetch_commonroad_scenarios.py`. The code path supports CommonRoad-specific
-lanelet, kinematic, collision, and boundary annotations when real XML files and optional
-CommonRoad-DC tooling are installed.
+locally with `scripts/fetch_commonroad_scenarios.py`. For real XML runs, the MIL runner extracts a
+first-pass lanelet/goal reference path and supports CommonRoad-specific lanelet, kinematic,
+collision, and boundary annotations when optional CommonRoad-DC tooling is installed.
 
 | Controller | Success rate | Collision count | Road-boundary violations | Mean lateral RMSE | Mean speed RMSE | Max p95 solve time | Fallback count |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -85,13 +85,14 @@ over PID/LQR but pays more solver overhead through CVXPY/OSQP in this local impl
 
 A seven-scenario real XML suite is defined in `configs/commonroad/real_scenario_suite.yaml`.
 With `commonroad-io==2024.3` and `commonroad-drivability-checker==2025.4.0`, the MIL runner now
-activates CommonRoad-DC checks. The first full seven-scenario run is summarized in
+uses lanelet/goal-derived references and activates CommonRoad-DC checks. The current full
+seven-scenario run is summarized in
 `docs/reports/commonroad_drivability_report.md`.
 
-The result is intentionally not polished: only 1 of 7 scenarios passed. The checks found real
+The result is intentionally not polished: 0 of 7 scenarios passed. The checks found real
 road-boundary violations, collision flags, kinematic violations, and fallback activations. This is
-useful because it exposes the next missing engineering layer: the controller needs real route
-extraction and obstacle-aware behavior, not just initial-state tracking.
+useful because it exposes the next missing engineering layer: the controller needs stronger route
+progress tracking, dynamic-obstacle reasoning, and obstacle-aware behavior.
 
 ## SIL Evidence
 

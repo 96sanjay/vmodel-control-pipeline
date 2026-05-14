@@ -108,10 +108,10 @@ The CommonRoad-DC path currently pins `commonroad-io<2026` because
 | Stage | Current evidence |
 |---|---|
 | Requirements | YAML requirements, hazard log, traceability matrix |
-| MIL | Controller comparison on synthetic smoke references derived from the CommonRoad manifest |
+| MIL | Controller comparison on synthetic smoke references and optional real CommonRoad XML scenarios |
 | SIL | Back-to-back equivalence through stable controller adapters |
 | HIL-lite | In-process/UDP-style loop with latency, timeout, missed-deadline, and fallback logging |
-| CommonRoad checks | Lanelet membership, kinematic checks, and optional CommonRoad-DC collision/boundary checks |
+| CommonRoad checks | Lanelet reference extraction, lanelet membership, kinematic checks, and optional CommonRoad-DC collision/boundary checks |
 | Logging | Signal dictionary, CSV logs, JSON metadata, optional MF4 export hook, virtual CAN frames |
 
 The wording is deliberate: this is **V-model-inspired**, **ISO 26262-inspired**, and
@@ -140,8 +140,9 @@ These results use synthetic tracking references when raw CommonRoad XML files ar
 | NMPC | 1.00 | 0 | 0.2285 m | 0.9601 m/s | 2.66 ms | 0 |
 
 Interpretation: NMPC currently performs best on the harder synthetic tracking cases, especially
-turn-like and lane-change references. This is not yet proof of obstacle avoidance, because full
-CommonRoad collision/drivability checking is still future work.
+turn-like and lane-change references. This is not proof of obstacle avoidance. Real CommonRoad XML
+runs use lanelet/goal-derived references plus optional CommonRoad-DC checks, and the current
+controller still fails most real traffic scenarios.
 
 ## How To Run
 
@@ -205,15 +206,30 @@ python scripts/check_commonroad_scenarios.py \
   --suite configs/commonroad/real_scenario_suite.yaml
 ```
 
-When real XML files are available, the MIL runner annotates each row with CommonRoad-specific
-validation evidence:
+When real XML files are available, the MIL runner extracts a first-pass lanelet/goal reference path
+and annotates each row with CommonRoad-specific validation evidence:
 
 | Field | Meaning |
 |---|---|
+| `scenario_source` | `commonroad_reference_path` when a real lanelet reference was used |
+| `reference_start_lanelet_id` | Lanelet containing the initial ego position |
+| `reference_goal_lanelet_ids` | Goal lanelet IDs extracted from the planning problem or goal shape |
 | `commonroad_lanelet_checked` | Lanelet-network membership check was available |
 | `commonroad_dc_checked` | CommonRoad-DC collision or boundary checker was available |
 | `commonroad_kinematic_violation` | Vehicle state or applied command violated configured limits |
 | `commonroad_check_notes` | Notes explaining skipped optional checks or checker failures |
+
+Run the seven-scenario real XML smoke benchmark locally:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+python -m vcp.validation.run_mil \
+  --suite configs/commonroad/real_scenario_suite.yaml \
+  --controller nmpc \
+  --max-scenarios 0 \
+  --steps 25 \
+  --output-dir artifacts/real_commonroad_reference_mil_7
+```
 
 ## Virtual CAN
 
